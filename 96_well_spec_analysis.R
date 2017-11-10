@@ -1,0 +1,502 @@
+# 96 well spectrophotometer data analysis (ferrozine)
+# Created Nov 11th, 2016 by Jackson Tsuji (Neufeld Lab PhD student)
+# Description: Imports and processes pre-organized 96 well plate data.
+# Version 4.0.4
+# Last updated: Oct 5th, 2017
+
+# Notes: to use:
+# 1. Summarize your sample naming info via "Sample_naming_template_v4.0.0.xslx":
+#     a. Enter your info into the 96 well plates and standards table
+#     b. Click on the "Organize" button. The info should be pasted into "long" format in the second worksheet.
+#     c. Copy the contents of this spreadsheet into a text editor (or a new session of Excel) and save in "Tab Delimited" format (or just .txt/.tsv in a text editor)
+# 2. Summarize your plate data:
+#     a. Export the plate data from the plate reader in the "columns" format as a .txt file (can only handle one plate at a time, currently)
+#     b. In a text editor, open the file and then convert the encoding from UTF-16 to UTF-8, for import into R. Also, convert the line spacing style from Windows to Unix.
+#     c. Convert from this filetype into "long" format using this script. Set "unparsed_plate_data" to TRUE and run with the raw data as the "plate_data_filename".
+#         The script will exit early (looks like a warning, but is actually okay), and will give you a "parsed" version of the data in your file folder.
+#     d. Open the resulting data file and add the date to the "Date" column in this format: "dd-mmm-yy"
+# 3. Combine multiple days' worth of plate data
+#     a. Open the summarized plate data from each day (e.g., in Excel or a text editor). Combine all into a single table and save.
+#     b. Repeat for the sample naming from each day.
+# 4. Load the combined plate data and sampling naming data into this script (with "unparsed_plate_data" as FALSE)
+#     ...and you're good to go!
+# Note that I'm also using a "Fe additions log" to note when additional Fe is spiked into the cultures. You could always drop this -- just comment out the lines of code that cite "Fe2_additions_log".
+
+#####################################################
+## Script settings: #################################
+setwd("/Users/JTsuji/Documents/Research_General/PhD/04d_Enrichment_culturing/02_Chlorobi/03_activity_measurements/01_ferrozine/02_measurements/171000 Sept 2017 enrichments setup2/") # your working directory where files are stored
+unparsed_plate_data <- F # Set TRUE if you need to parse raw plate data. Will parse, then exit.
+plate_data_filename <- "02_analyzed_data/171009_FeZ_enrichments_setup2_combined_t1_to_11_vs2.tsv"
+plate_order_filename <- "02_analyzed_data/171007_Sample_naming_setup2_combined_t1_to_11_vs2.tsv"
+Fe2_additions_log_filename <- "Fe2_additions_log_setup2.txt"
+# plate_data_filename <- "01_input_data/01_FeTot_and_Fe2_raw/171027_FeZ_enrichments_setup2_t7_FeTot.txt"
+# plate_order_filename <- "01_input_data/171026_Sample_naming_setup2_t7.tsv"
+print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
+print_processed_data <- TRUE # print data tables?
+force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
+#####################################################
+
+
+#####################################################
+## Load required packages: ##########################
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(grid)
+library(reshape2)
+library(xlsx)
+#####################################################
+
+
+#####################################################
+### Part A: Input data and clean up #################
+#####################################################
+if (unparsed_plate_data == TRUE) {
+  print("Parsing plate data...")
+  
+  # Import raw plate data
+  line_num <- as.numeric(system(paste("wc -l ", plate_data_filename, " | cut -d ' ' -f 8", sep = ""), intern = TRUE))
+  
+  # Cut out the table portion of the raw file and save it to an intermediate file
+  parsed_plate_data_filename <- paste(strsplit(plate_data_filename, ".txt")[[1]], "_parsed.txt", sep = "")
+  system(paste("head -n ", line_num - 3, " ", plate_data_filename, " | tail -n ", line_num - 5, " | cut -d $'\t' -f 3-", " > ", parsed_plate_data_filename, sep = ""), intern = FALSE)
+  
+  plate_data <- as.data.frame(t(read.table(parsed_plate_data_filename, header = FALSE, sep = "\t")))
+  # Remove trailing empty row
+  plate_data <- plate_data[-nrow(plate_data),]
+  
+  plate_data <- data.frame("Well" = unname(plate_data[,1]), "Absorbance" = unname(plate_data[,2]))
+  # Change Absorbance to numeric
+  # idea from http://stackoverflow.com/questions/3418128/how-to-convert-a-factor-to-an-integer-numeric-without-a-loss-of-information (accessed Nov 28, 2016)
+  plate_data$Absorbance <- as.numeric(levels(plate_data$Absorbance))[plate_data$Absorbance]
+  
+  # Add Date column for user to fill in
+  plate_data$Date <- character(length = nrow(plate_data))
+  
+  # Delete the old intermediate file
+  system(paste("rm ", parsed_plate_data_filename, sep = ""), intern = FALSE)
+  
+  # Export finalized absorbances file
+  parsed_plate_data_filename <- paste(strsplit(plate_data_filename, ".txt")[[1]], "_parsed.tsv", sep = "")
+  write.table(plate_data, file = parsed_plate_data_filename, sep = "\t", row.names = FALSE, col.names = TRUE)
+  
+  stop(paste("Success: Raw plate data parsed and written to ", parsed_plate_data_filename, ". Please add date and then run this script again with unparsed_plate_data set as FALSE.", sep = ""))
+} else {
+  plate_data <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+  
+  # Check if date column exists for multiple sampling dates. If it does not, exit early.
+  if ("Date" %in% colnames(plate_data)) {
+  } else {
+    # print("Assuming all samples from the same date.")
+    # plate_data_merged$Date <- "NA"
+    stop("ERROR: Need to add a Date column to the plate data for it to be read. Exiting...")
+  }
+}
+
+## Import plate order data
+plate_order <- read.table(plate_order_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+
+## Join plate order data with absorbance data
+plate_data_merged <- dplyr::inner_join(plate_data, plate_order, by = c("Well","Date"))
+
+###############################################
+### Part B: Process standards and unknowns #################
+###############################################
+
+### First, split the raw data into multiple sub-tables by date of sampling
+plate_data_sep <- lapply(unique(plate_data_merged$Date), function(x) {filter(plate_data_merged, Date == x)})
+names(plate_data_sep) <- unique(plate_data_merged$Date)
+
+# Assume one standard for whole plate with different blanking options
+make_standard_curve <- function(data_table) {
+  # data_table <- plate_data_sep[[1]]
+  
+  ## Summarize standard curve data
+  std_raw <- filter(data_table, Sample_type == "Standard")
+  std_grouped <- group_by(std_raw, Blanking_group, Treatment, Sample_name, Standard_conc, Date)
+  std_summ <- summarise(std_grouped, Ave_abs = mean(Absorbance), StdDev_abs = sd(Absorbance))
+  
+  # Get Blanking Group of standards
+  std_Blanking_group <- as.character(unique(std_summ$Blanking_group))
+  
+  # Check that only one Blanking Group is present and throw a warning otherwise -- handling multiple is not yet supported.
+  if (length(std_Blanking_group) > 1) {
+    stop("ERROR: detected standards of multiple Blanking Groups in the dataset. The script is not yet able to handle this. Exiting out...")
+  }
+  
+  ### Summarize blanks
+  blanks_raw <- filter(data_table, Sample_type == "Blank")
+  blanks_grouped <- group_by(blanks_raw, Blanking_group, Sample_name, Standard_conc, Date)
+  blanks_summ <- summarise(blanks_grouped, Ave_abs = mean(Absorbance), StdDev_abs = sd(Absorbance))
+  
+  # Find blank matching Blanking Group of standards and pull out absorbance
+  std_blank_row <- match(std_Blanking_group, blanks_summ$Blanking_group)
+  std_blank_abs <- as.numeric(blanks_summ[std_blank_row,"Ave_abs"])
+  std_blank_abs_sd <- as.numeric(blanks_summ[std_blank_row,"StdDev_abs"])
+  # Check that standard deviation is less than 10% to make sure the blank is okay. If not, throw a warning.
+  if (std_blank_abs_sd > (0.1 * std_blank_abs)) {
+    print("WARNING: Standard deviation of standards blank is >10% of the average value of the blank. Something could be fishy with the input data.")
+  }
+  
+  # Subtract blank from all standards
+  std_summ$Ave_abs <- (std_summ$Ave_abs - std_blank_abs)
+  
+  # Make linear trendline
+  if (force_zero == TRUE) {
+    trendline <- lm(Ave_abs ~ 0 + Standard_conc, data = std_summ) # Forcing through origin: https://stackoverflow.com/a/18947967, accessed 170815
+  } else {
+    trendline <- lm(Ave_abs ~ Standard_conc, data = std_summ)
+  }
+  
+  # Summarize some trendline values
+  if (force_zero == TRUE) {
+    trendline_coeff <- c(0, coefficients(trendline)) # to make this match what the coefficients look like when not fixed to origin
+  } else {
+    trendline_coeff <- coefficients(trendline)
+  }
+  trendline_Rsquared <- summary(trendline)$r.squared
+  trendline_summ <- data.frame("Intercept" = unname(trendline_coeff[1]), "Slope" = unname(trendline_coeff[2]), "R_squared" = trendline_Rsquared, "Date" = unique(std_summ$Date), stringsAsFactors = FALSE)
+  
+  # Return list of processed data
+  output_list <- list(std_summ, trendline_summ, blanks_summ)
+  names(output_list) <- c("Standards_blanked", "Trendline", "Blanks_all")
+  
+  return(output_list)
+}
+
+# Function to adjust absorbances of unknowns based on blanks
+# (messy function; need to rewrite for clarity)
+blank_unknowns <- function(summarized_unknowns, summarized_blanks) {
+  # summarized_unknowns <- unknowns_data[[1]]$unk_summ
+  # summarized_blanks <- plate_data_stds[[1]]$Blanks_all
+  
+  # Get all Blanking Groups
+  unk_Blanking_groups <- as.character(unique(summarized_unknowns$Blanking_group))
+  
+  # For each Blanking Group, get the corresponding blank value and use to blank the unknown
+  summarized_unknowns$Blank_abs_ave <- numeric(length = nrow(summarized_unknowns))
+  summarized_unknowns$Blank_abs_sd <- numeric(length = nrow(summarized_unknowns))
+  summarized_unknowns$Ave_abs_blanked <- numeric(length = nrow(summarized_unknowns))
+  for (i in 1:length(unk_Blanking_groups)) {
+    # i <- 1
+    
+    # Get name of Blanking Group
+    unk_b_grp <- unk_Blanking_groups[i]
+    
+    # Find match in blanks summary table
+    # Throw a warning if the blanking group does not exist.
+    if (is.na(match(unk_b_grp, summarized_blanks$Blanking_group)) == TRUE) {
+      warning(paste("WARNING: No blank available for group ", unk_b_grp, ", for date ", unique(summarized_unknowns$Date), 
+                    ". Will not generate concentration values for any of the measurements from this blanking group.", sep = ""))
+    }
+    matching_row <- match(unk_b_grp, summarized_blanks$Blanking_group)
+      
+    # Pull out average and standard deviation
+    blank_abs <- as.numeric(summarized_blanks[matching_row,"Ave_abs"])
+    blank_abs_sd <- as.numeric(summarized_blanks[matching_row,"StdDev_abs"])
+    
+    # # Throw a warning if standard deviation is >10% of average
+    # if (blank_abs_sd > (0.1 * blank_abs)) {
+    #   warning(paste("WARNING: Blanking unknowns: standard deviation of blank for ", unique(summarized_unknowns$Date), ", ", unk_b_grp," is >10% of the average value of the blank. Something could be fishy with the input data.", sep = ""))
+    # }
+    
+    # Find unknowns matching the standard
+    unknowns_row_num <- which(summarized_unknowns$Blanking_group %in% unk_b_grp) # https://stackoverflow.com/a/30282302, accessed 170925
+    
+    for (j in unknowns_row_num) {
+      # j <- unknowns_row_num[1]
+      summarized_unknowns$Ave_abs_blanked[j] <- summarized_unknowns$Ave_abs[j] - blank_abs
+      summarized_unknowns$Blank_abs_ave[j] <- blank_abs
+      summarized_unknowns$Blank_abs_sd[j] <- blank_abs_sd
+    }
+    
+  }
+  
+  return(summarized_unknowns)
+}
+
+# Function to convert sample absorbances to concentrations for each date, re-blanking standards as needed
+convert_to_concentration <- function(data_table, std_list) {
+  # data_table <- plate_data_sep[[1]]
+  # std_list <- plate_data_stds[[1]]
+  
+  ### Summarize unknowns data
+  unk_raw <- filter(data_table, Sample_type == "Unknown")
+  unk_grouped <- group_by(unk_raw, Blanking_group, Treatment, Sample_name, Dilution_factor, Date, Replicate)
+  unk_summ <- summarise(unk_grouped, Ave_abs = mean(Absorbance), StdDev_abs = sd(Absorbance))
+  
+  # Subtract appropriate blanks
+  unk_summ <- blank_unknowns(unk_summ, std_list$Blanks_all)
+  
+  # Convert to concentration using standard curve (linear model) AND dilution factor
+  unk_summ$Ave_concentration_uM <- (unk_summ$Ave_abs_blanked - std_list$Trendline$Intercept) / std_list$Trendline$Slope * unk_summ$Dilution_factor
+  
+  # Get standard devations (also accounting for dilution factor)
+  unk_summ$StdDev_Concentration_uM <- (unk_summ$StdDev_abs / std_list$Trendline$Slope) * unk_summ$Dilution_factor
+  # For calculating std dev like this, see http://www.psychstat.missouristate.edu/introbook/sbk15.htm, accessed ~Jan. 2017
+  
+  
+  # Figure out where to put the trend line equation text on the plot
+  min_x <- min(std_list$Standards_blanked$Standard_conc)
+  max_x <- max(std_list$Standards_blanked$Standard_conc)
+  min_y <- min(std_list$Standards_blanked$Ave_abs)
+  max_y <- max(std_list$Standards_blanked$Ave_abs)
+  x_coord <- (max_x - min_x) * 0.05 # arbitrary position 5% to the right of the y axis
+  y_coord <- (max_y - min_y) * 0.8 # arbitrary position 80% above the x axis
+  
+  ## Make standards plot without samples
+  std_plot <- ggplot(std_list$Standards_blanked, aes(x = Standard_conc, y = Ave_abs)) +
+    geom_smooth(method = "lm", se = T, colour = "purple") +
+    geom_errorbar(aes(x = Standard_conc, ymin = Ave_abs-StdDev_abs, ymax = Ave_abs+StdDev_abs), width = 0, size = 0.8, alpha = 0.8) +
+    geom_point(alpha = 0.9, size = 3) +
+    annotate("text", x = x_coord, y = y_coord, label = paste("y = ", round(std_list$Trendline$Slope, digits = 5), "x + ", round(std_list$Trendline$Intercept, digits = 5), "\n R^2 = ", round(std_list$Trendline$R_squared, digits = 5), sep = ""), size = 3) +
+    theme_bw() +
+    # Add theme elements to make the plot look nice
+    theme(panel.grid = element_blank(), title = element_text(size = 10), axis.title = element_text(size = 12), 
+          strip.text = element_text(size = 10), strip.background = element_rect(fill = "#e6e6e6"),
+          panel.border = element_rect(colour = "black", size = 1), panel.spacing.y = unit(3, "mm"), panel.spacing.x = unit(0, "mm"),
+          axis.text.x = element_text(size = 10, colour = "black"), axis.text.y = element_text(size = 10, colour = "black"),
+          axis.ticks = element_line(size = 0.5), axis.line = element_line(colour = "black", size = 0.5),
+          legend.text = element_text(size = 7), legend.title = element_blank(),
+          legend.key = element_rect(colour = "grey", size = 0.3), legend.key.size = unit(3, "mm"),
+          legend.spacing = unit(1, "mm"), legend.box.just = "left", plot.margin = unit(c(2,2,2,2), "mm")) +
+    #         See http://stackoverflow.com/questions/1330989/rotating-and-spacing-axis-labels-in-ggplot2 (approx. Jan 27, 2016) for vertical x-axis labels
+    # scale_x_continuous(limits = c(0, NA)) +
+    # scale_y_continuous(limits = c(0, NA)) +
+    scale_x_log10() +
+    scale_y_log10() +
+    annotation_logticks() +
+    xlab("Iron concentration (uM)") +
+    ylab("Absorbance (550 nm)") +
+    ggtitle(paste("Day ", unique(data_table$Date), sep = ""))
+  
+  # # Print plot to the screen
+  # print(std_plot)
+  
+  # Add on samples to the standard plot
+  unk_plot <- std_plot +
+    geom_errorbar(data = unk_summ, aes(x = (Ave_concentration_uM / Dilution_factor), ymin = Ave_abs_blanked-StdDev_abs, ymax = Ave_abs_blanked+StdDev_abs), width = 0, size = 0.8, alpha = 0.8, colour = "darkcyan") +
+    geom_point(data = unk_summ, aes((Ave_concentration_uM / Dilution_factor), Ave_abs_blanked), shape = 21, alpha = 0.8, size = 3, fill = "darkcyan")
+    
+  # # Print plot to the screen
+  # print(unk_plot)
+  
+  output_list <- list(unk_summ, std_plot, unk_plot)
+  names(output_list) <- c("unk_summ", "std_plot", "std_plot_with_unknowns")
+  return(output_list)
+
+}
+
+# Optionally perform a visual check of the data
+visual_check <- function(data_table) {
+  # data_table <- plate_data_sep[[2]]
+  
+  # Split wells into row and column
+  data_table$Well_row <- as.character(substr(data_table$Well, start = 1, stop = 1))
+  data_table$Well_col <- as.numeric(substr(data_table$Well, start = 2, stop = 3))
+  
+  # Put rows in order
+  data_table$Well_row <- factor(data_table$Well_row, levels = rev(c("A", "B", "C", "D", "E", "F", "G", "H")), ordered = TRUE)
+  
+  # Make annotation text
+  data_table$Annotation <- paste(data_table$Sample_name, " ", data_table$Replicate, "\n", data_table$Absorbance, sep = "")
+  # Clean out ones with no sample
+  for (i in 1:length(data_table$Annotation)) {
+    if (data_table$Sample_name[i] == "") {
+      data_table$Annotation[i] <- ""
+    }
+  }
+  
+  plate_diagram <- ggplot(data_table, aes(factor(Well_col), Well_row)) +
+    geom_point(aes(fill = Absorbance), shape = 21, size = 10) +
+    geom_text(aes(label = Annotation), size = 2) +
+    scale_fill_gradientn(colours = c("#ffffff", "#ff3399", "#660066"), limits = c(0,1)) + # Used limits to set absolute colour scale, as recommended at https://stackoverflow.com/a/21538521 (accessed Oct 2nd, 2017)
+    xlab("") +
+    ylab("") +
+    ggtitle(unique(data_table$Date))
+  
+  return(plate_diagram)
+}
+
+# Generate standards for each Date
+plate_data_stds <- lapply(names(plate_data_sep), function(x) {make_standard_curve(plate_data_sep[[x]])})
+names(plate_data_stds) <- names(plate_data_sep)
+
+# Get concentrations and plot for each Date
+unknowns_data <- lapply(names(plate_data_sep), function(x) {convert_to_concentration(plate_data_sep[[x]], plate_data_stds[[x]])})
+names(unknowns_data) <- names(plate_data_sep)
+
+# Optionally generate and print plate diagrams
+plate_diagrams <- lapply(names(plate_data_sep), function(x) {visual_check(plate_data_sep[[x]])})
+plate_digrams_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_plate_diagrams.pdf", sep = "")
+if (print_plots == TRUE) {
+  pdf(file = plate_digrams_name, width = 10, height = 6)
+  print(plate_diagrams) # See https://stackoverflow.com/a/29834646, accessed 170815
+  dev.off()
+}
+
+###############################################
+### Part C: Summarize output #################
+###############################################
+
+# Summarize the unknowns (samples) data and re-order for clarity
+plate_data_unknowns <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["unk_summ"]]}))
+plate_data_unknowns$Date <- as.Date(plate_data_unknowns$Date, format = "%d-%b-%y")
+plate_data_unknowns <- plate_data_unknowns[,c(5,3,6,2,4,1,7,8,11,12,13)]
+
+# Also make user-friendly unknowns data
+plate_data_unknowns_readable <- reshape2::dcast(plate_data_unknowns, Sample_name + Replicate + Treatment ~ Date, value.var = "Ave_concentration_uM")
+plate_data_unknowns_readable_sd <- reshape2::dcast(plate_data_unknowns, Sample_name + Replicate + Treatment ~ Date, value.var = "StdDev_Concentration_uM")
+
+# Summarize standards and re-order for clarity
+plate_data_standards <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Standards_blanked"]]}))
+plate_data_standards <- plate_data_standards[,c(5,3,4,2,1,6,7)]
+
+# Summarize blanks and re-order for clarity
+plate_data_blanks <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Blanks_all"]]}))
+plate_data_blanks <- plate_data_blanks[,c(4,1,2,5,6)]
+
+# Summarize trendline and re-order for clarity
+plate_data_trendlines <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Trendline"]]}))
+plate_data_trendlines <- plate_data_trendlines[,c(4,2,1,3)]
+
+# Write summary table if desired
+if (print_processed_data == TRUE) {
+  # Modify input file name as the output name for the table
+  table_filenames_prefix <- substr(plate_data_filename, 1, nchar(plate_data_filename)-4)
+  table_filenames <- c(paste(table_filenames_prefix, "_unknowns.tsv", sep = ""),
+                   paste(table_filenames_prefix, "_standards.tsv", sep = ""),
+                   paste(table_filenames_prefix, "_blanks.tsv", sep = ""),
+                   paste(table_filenames_prefix, "_trendlines.tsv", sep = ""))
+  tables_to_write <- list(plate_data_unknowns, plate_data_standards, plate_data_blanks, plate_data_trendlines)
+  
+  # Write table
+  for (i in 1:length(tables_to_write)) {
+    write.table(tables_to_write[[i]], file = table_filenames[[i]], sep = "\t", col.names = TRUE, row.names = FALSE)
+  }
+  
+  # Write user-friendly data to Excel spreadsheet (multi-sheet)
+  xlsx_table_filename <- paste(table_filenames_prefix, "_unknowns_readable.xlsx", sep = "")
+  options(xlsx.date.format = "yyyy-MM-dd") # Doesn't seem to affect anything currently
+  write.xlsx2(plate_data_unknowns_readable, xlsx_table_filename, sheetName="conc_uM_readable", col.names=TRUE, row.names=FALSE, append=FALSE)
+  write.xlsx2(plate_data_unknowns_readable_sd, xlsx_table_filename, sheetName="StdDev_uM_readable", col.names=TRUE, row.names=FALSE, append=TRUE)
+
+}
+
+######## CODE NOT ADDED YET #######
+# Summarize the trendline equations into a data table
+# Columns: Day, Septum_number, Number_of_standards, Trendline_slope, Trendline_y_int, Trendline_R2
+# do this as a new feature on another day...
+
+# Summarize standards like with the unknowns above.
+##################################
+
+# Make multi-panel standard curve plots, if desired
+std_plots_list <- lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["std_plot"]]})
+std_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_std_curves.pdf", sep = "")
+if (print_plots == TRUE) {
+  pdf(file = std_plot_name)
+  print(std_plots_list) # See https://stackoverflow.com/a/29834646, accessed 170815
+  dev.off()
+} else {
+  print(std_plots_list) # prints to screen if a PDF printout is not wanted
+}
+
+# Do again for the standard curves with samples overlaid
+unk_plots_list <- lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["std_plot_with_unknowns"]]})
+unk_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_std_curves_with_samples.pdf", sep = "")
+if (print_plots == TRUE) {
+  pdf(file = unk_plot_name)
+  print(unk_plots_list)
+  dev.off()
+} else {
+  print(std_plots_list) # prints to screen if a PDF printout is not wanted
+}
+
+###############################################
+### Part D: Plot #################
+###############################################
+
+# Working with stuff from another script, so renaming for simplicity
+analyzed_data <- plate_data_unknowns
+
+# Load Fe2 additions log for plotting
+Fe2_additions_log <- read.table(Fe2_additions_log_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+Fe2_additions_log$Date <- as.Date(Fe2_additions_log$Date, format = "%d-%b-%y")
+
+# Add adjusted date to make it clearer on the plot
+Fe2_additions_log$Date_adjusted <- Fe2_additions_log$Date + 1
+
+# Convert dates to days from time zero
+analyzed_data$Day <- as.numeric(analyzed_data$Date - min(analyzed_data$Date))
+Fe2_additions_log$Day <- as.numeric(Fe2_additions_log$Date - min(analyzed_data$Date))
+Fe2_additions_log$Day_adjusted <- Fe2_additions_log$Day + 0.5
+
+# Custom: ONLY use this line if you want a custom plot to omit L227 3.875m C as an outlier, and show only the other samples from L227 3.875m:
+# analyzed_data <- dplyr::filter(analyzed_data, Sample_name == "L227 3.875m" & Replicate != "C")
+
+# Make plots
+analyzed_data_plot_general <- ggplot(analyzed_data) +
+  facet_grid(Sample_name ~ Replicate, scales = "free_y") +
+  scale_colour_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  # scale_shape_manual(values = c(21,22)) +
+  theme_bw() +
+  theme(panel.grid = element_blank(), axis.title = element_text(size = 14), 
+        strip.text.x = element_text(size = 12), strip.text.y = element_text(size = 8), strip.background = element_rect(fill = "#e6e6e6"),
+        panel.border = element_rect(colour = "black", size = 2), 
+        axis.text = element_text(size = 9, colour = "black"),
+        axis.ticks = element_line(size = 0.5), axis.line = element_line(colour = "black", size = 0.5),
+        legend.text = element_text(size = 10), legend.title = element_text(size = 10, face = "bold"),
+        legend.key = element_rect(colour = "transparent", size = 0.5), legend.key.size = unit(5, "mm"),
+        legend.spacing = unit(1, "mm"), legend.box.just = "left", plot.margin = unit(c(2,2,2,2), "mm")) +
+  ylab("Fe concentration (uM)")
+
+
+# Make the plot with Dates
+analyzed_data_plot_dates <- analyzed_data_plot_general +
+  geom_errorbar(aes(x = Date, ymin = Ave_concentration_uM-StdDev_Concentration_uM, ymax = Ave_concentration_uM+StdDev_Concentration_uM), width = 0, size = 0.8, alpha = 0.8) +
+  geom_line(aes(Date, Ave_concentration_uM, colour = Treatment), alpha = 0.8) +
+  geom_point(aes(Date, Ave_concentration_uM, fill = Treatment), shape = 21, size = 3, alpha = 0.8) +
+  geom_vline(data = Fe2_additions_log, aes(xintercept = as.numeric(Date_adjusted)), linetype = "dashed") + # https://stackoverflow.com/a/5391843, accessed 28-Sep-2017
+  xlab("Date") +
+  scale_x_date(expand = c(0, 1), date_breaks = "2 days", date_labels = "%b %d") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+# print(analyzed_data_plot_dates)
+
+
+# Make the plot with Days
+# First, decide where to put the labels for the Fe2 additions
+Fe2_label_y_value_positions <- dplyr::bind_rows(lapply(unique(analyzed_data$Sample_name), function(x) {
+  subset_table <- dplyr::filter(analyzed_data, Sample_name == x)
+  bottom <- min(subset_table$Ave_concentration_uM)
+  # print(bottom)
+  top <- max(subset_table$Ave_concentration_uM)
+  # print(top)
+  label_y_value <- bottom + ((top - bottom) * 0.25) # 0.25 is arbitrary; 25% of the way up.
+  output <- data.frame("Sample_name" = x, "label_y_value" = label_y_value, stringsAsFactors = F)
+  return(output)
+  }))
+Fe2_additions_log <- dplyr::left_join(Fe2_additions_log, Fe2_label_y_value_positions, by = "Sample_name")
+
+analyzed_data_plot_days <- analyzed_data_plot_general +
+  geom_errorbar(aes(x = Day, ymin = Ave_concentration_uM-StdDev_Concentration_uM, ymax = Ave_concentration_uM+StdDev_Concentration_uM), width = 0, size = 0.8, alpha = 0.8) +
+  geom_line(aes(Day, Ave_concentration_uM, colour = Treatment), alpha = 0.8) +
+  geom_point(aes(Day, Ave_concentration_uM, fill = Treatment), shape = 21, size = 3, alpha = 0.8) +
+  geom_vline(data = Fe2_additions_log, aes(xintercept = as.numeric(Day_adjusted)), linetype = "dashed") + # https://stackoverflow.com/a/5391843, accessed 28-Sep-2017
+  geom_text(data = Fe2_additions_log, aes(x = Day_adjusted, label = Added_Fe2, y = label_y_value), nudge_x = -0.4, size = 2, angle = 90, fontface = "bold") +
+  xlab("Day")
+
+# print(analyzed_data_plot_days)
+
+# Export plots
+analyzed_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_summary_plot.pdf", sep = "")
+if (print_plots == TRUE) {
+  pdf(file = analyzed_plot_name, width = 8, height = 7)
+  print(list(analyzed_data_plot_days, analyzed_data_plot_dates)) # See https://stackoverflow.com/a/29834646, accessed 170815
+  dev.off()
+} else {
+  print(list(analyzed_data_plot_days, analyzed_data_plot_dates)) # prints to screen if a PDF is not wanted.
+}
+
