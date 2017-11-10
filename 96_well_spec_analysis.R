@@ -1,7 +1,7 @@
 # 96 well spectrophotometer data analysis (ferrozine)
 # Created Nov 11th, 2016 by Jackson Tsuji (Neufeld Lab PhD student)
 # Description: Imports and processes pre-organized 96 well plate data.
-# Version 4.0.4
+# Version 4.0.4_xinda
 # Last updated: Oct 5th, 2017
 
 # Notes: to use:
@@ -24,13 +24,11 @@
 
 #####################################################
 ## Script settings: #################################
-setwd("/Users/JTsuji/Documents/Research_General/PhD/04d_Enrichment_culturing/02_Chlorobi/03_activity_measurements/01_ferrozine/02_measurements/171000 Sept 2017 enrichments setup2/") # your working directory where files are stored
-unparsed_plate_data <- F # Set TRUE if you need to parse raw plate data. Will parse, then exit.
-plate_data_filename <- "02_analyzed_data/171009_FeZ_enrichments_setup2_combined_t1_to_11_vs2.tsv"
-plate_order_filename <- "02_analyzed_data/171007_Sample_naming_setup2_combined_t1_to_11_vs2.tsv"
-Fe2_additions_log_filename <- "Fe2_additions_log_setup2.txt"
-# plate_data_filename <- "01_input_data/01_FeTot_and_Fe2_raw/171027_FeZ_enrichments_setup2_t7_FeTot.txt"
-# plate_order_filename <- "01_input_data/171026_Sample_naming_setup2_t7.tsv"
+setwd("/Users/JTsuji/Documents/Research_General/PhD/19 other analyses/171110_xinda_NO2/") # your working directory where files are stored
+unparsed_plate_data <- T # Set TRUE if you need to parse raw plate data. Will parse, then exit.
+plate_number <- 1 # Set if unparsed_plate_data is TRUE
+plate_data_filename <- "02_split/NO2_plate1.txt"
+plate_order_filename <- "02_split/NO2_plate1_naming.tsv"
 print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
 print_processed_data <- TRUE # print data tables?
 force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
@@ -51,53 +49,78 @@ library(xlsx)
 #####################################################
 ### Part A: Input data and clean up #################
 #####################################################
+# Get prefix name of input data file for naming output files
+output_filenames_prefix <- substr(plate_data_filename, 1, nchar(plate_data_filename)-4)
+
 if (unparsed_plate_data == TRUE) {
   print("Parsing plate data...")
   
-  # Import raw plate data
-  line_num <- as.numeric(system(paste("wc -l ", plate_data_filename, " | cut -d ' ' -f 8", sep = ""), intern = TRUE))
+  # Read the vectorized input
+  con <- file("01_raw/NO2_H2_both_depth_30C.txt", encoding = "UTF-16LE")
+  unparsed_data <- readLines(con)
+  close(con)
+  # unique(Encoding(A))
   
-  # Cut out the table portion of the raw file and save it to an intermediate file
-  parsed_plate_data_filename <- paste(strsplit(plate_data_filename, ".txt")[[1]], "_parsed.txt", sep = "")
-  system(paste("head -n ", line_num - 3, " ", plate_data_filename, " | tail -n ", line_num - 5, " | cut -d $'\t' -f 3-", " > ", parsed_plate_data_filename, sep = ""), intern = FALSE)
+  # Parse the input
+  # Eliminate the first line and last line (extraneous)
+  unparsed_data <- unparsed_data[-c(1, length(unparsed_data))]
   
-  plate_data <- as.data.frame(t(read.table(parsed_plate_data_filename, header = FALSE, sep = "\t")))
-  # Remove trailing empty row
-  plate_data <- plate_data[-nrow(plate_data),]
+  # Determine the number of plates
+  plate_endings <- grep("^~End", unparsed_data)
+  number_of_plates <- length(plate_endings)
+  print(paste("Found ",number_of_plates," plates' worth of plate data.", sep = ""))
   
-  plate_data <- data.frame("Well" = unname(plate_data[,1]), "Absorbance" = unname(plate_data[,2]))
-  # Change Absorbance to numeric
-  # idea from http://stackoverflow.com/questions/3418128/how-to-convert-a-factor-to-an-integer-numeric-without-a-loss-of-information (accessed Nov 28, 2016)
-  plate_data$Absorbance <- as.numeric(levels(plate_data$Absorbance))[plate_data$Absorbance]
+  # Funtion to pull plate data
+  get_individual_plate <- function(unparsed_plate_data, plate_ending_line, plate_num) {
+    # test data
+    # unparsed_plate_data <- unparsed_data
+    # plate_ending_line <- plate_endings[1]
+    # plate_num <- 1
+    
+    # Get the lines where the absorbance and well data is kept for the plate
+    plate_lines <- c((plate_ending_line - 2), (plate_ending_line -1))
+    
+    # Pull the lines from the unparsed file
+    plate_unparsed <- unparsed_data[plate_lines]
+    
+    # Eliminate the first two tabs
+    plate_unparsed <- gsub("^\t\t", "", plate_unparsed)
+    
+    # Make a table out of the absorbance data
+    plate_parsed <- strsplit(plate_unparsed, "\t")
+    names(plate_parsed) <- c("Well", "Absorbance")
+    plate_parsed$Absorbance <- as.numeric(plate_parsed$Absorbance)
+    plate_parsed <- data.frame("Plate_number" = plate_num, 
+                               "Well" = plate_parsed[[1]], 
+                               "Absorbance" = plate_parsed[[2]], 
+                               stringsAsFactors = FALSE)
+    
+    return(plate_parsed)
+  }
   
-  # Add Date column for user to fill in
-  plate_data$Date <- character(length = nrow(plate_data))
+  # Get all plate data
+  plate_data <- lapply(1:number_of_plates, function(x) {get_individual_plate(unparsed_plate_data, plate_endings[x], x)})
   
-  # Delete the old intermediate file
-  system(paste("rm ", parsed_plate_data_filename, sep = ""), intern = FALSE)
-  
-  # Export finalized absorbances file
-  parsed_plate_data_filename <- paste(strsplit(plate_data_filename, ".txt")[[1]], "_parsed.tsv", sep = "")
-  write.table(plate_data, file = parsed_plate_data_filename, sep = "\t", row.names = FALSE, col.names = TRUE)
-  
-  stop(paste("Success: Raw plate data parsed and written to ", parsed_plate_data_filename, ". Please add date and then run this script again with unparsed_plate_data set as FALSE.", sep = ""))
+  print("Successfully read in plate data.")
 } else {
   plate_data <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   
-  # Check if date column exists for multiple sampling dates. If it does not, exit early.
-  if ("Date" %in% colnames(plate_data)) {
+  # Check if plate number column exists for multiple plates. If it does not, exit early.
+  if ("Plate_number" %in% colnames(plate_data)) {
   } else {
-    # print("Assuming all samples from the same date.")
-    # plate_data_merged$Date <- "NA"
-    stop("ERROR: Need to add a Date column to the plate data for it to be read. Exiting...")
+    stop("ERROR: Need to add a Plate_number column to the plate data for it to be read. Exiting...")
   }
 }
 
-## Import plate order data
+## Import sample order data
 plate_order <- read.table(plate_order_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 
-## Join plate order data with absorbance data
+## Join sample order data with absorbance data
 plate_data_merged <- dplyr::inner_join(plate_data, plate_order, by = c("Well","Date"))
+
+# Export combined data
+merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
+write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
 
 ###############################################
 ### Part B: Process standards and unknowns #################
@@ -419,21 +442,6 @@ if (print_plots == TRUE) {
 
 # Working with stuff from another script, so renaming for simplicity
 analyzed_data <- plate_data_unknowns
-
-# Load Fe2 additions log for plotting
-Fe2_additions_log <- read.table(Fe2_additions_log_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
-Fe2_additions_log$Date <- as.Date(Fe2_additions_log$Date, format = "%d-%b-%y")
-
-# Add adjusted date to make it clearer on the plot
-Fe2_additions_log$Date_adjusted <- Fe2_additions_log$Date + 1
-
-# Convert dates to days from time zero
-analyzed_data$Day <- as.numeric(analyzed_data$Date - min(analyzed_data$Date))
-Fe2_additions_log$Day <- as.numeric(Fe2_additions_log$Date - min(analyzed_data$Date))
-Fe2_additions_log$Day_adjusted <- Fe2_additions_log$Day + 0.5
-
-# Custom: ONLY use this line if you want a custom plot to omit L227 3.875m C as an outlier, and show only the other samples from L227 3.875m:
-# analyzed_data <- dplyr::filter(analyzed_data, Sample_name == "L227 3.875m" & Replicate != "C")
 
 # Make plots
 analyzed_data_plot_general <- ggplot(analyzed_data) +
