@@ -136,7 +136,7 @@ add_sample_naming <- function(all_plate_data, order_filename) {
   
   ## Check if the sample naming and plate abosorbance data have the same number of plates, and throw a warning if not
   if (identical(unique(plate_order$Plate_number), unique(all_plate_data$Plate_number)) == FALSE) {
-    warning("WARNING: Number of plates in raw data files and sample naming sheet do not match. NA values will be placed where there are unmatched plates and may cause unexpected behaviour.")
+    warning("Number of plates in raw data files and sample naming sheet do not match. NA values will be placed where there are unmatched plates and may cause unexpected behaviour.")
   }
   
   ## Join sample order data with absorbance data
@@ -224,7 +224,7 @@ make_standard_curve <- function(data_table) {
   # Check that standard deviation (if exists) is less than 10% to make sure the blank is okay. If not, throw a warning.
   if (is.na(std_blank_abs_sd) == FALSE) {
     if (std_blank_abs_sd > (0.1 * std_blank_abs)) {
-      warning(paste("WARNING: Plate_number ", unique(data_table$Plate_number), ": std. dev. of standards blank is >10% of its average. Something could be fishy with the input data.", sep = ""))
+      warning(paste("Plate_number ", unique(data_table$Plate_number), ": std. dev. of standards blank is >10% of its average. Something could be fishy with the input data.", sep = ""))
     }
   }
   
@@ -236,7 +236,7 @@ make_standard_curve <- function(data_table) {
     std_names_below_blank_readable <- glue::collapse(std_names_below_blank, sep = ", ")
     
     # Throw a warning
-    warning(paste("WARNING: Plate_number ", unique(data_table$Plate_number), ": blank has higher absorbance than ", stds_below_blank, 
+    warning(paste("Plate_number ", unique(data_table$Plate_number), ": blank has higher absorbance than ", stds_below_blank, 
                   " of the standards (",  std_names_below_blank_readable, "). Will throw out all standards below blank.", sep = ""))
     
     # Remove all standards with absorbance lower than blank
@@ -294,7 +294,7 @@ blank_unknowns <- function(summarized_unknowns, summarized_blanks) {
     # Find match in blanks summary table
     # Throw a warning if the blanking group does not exist.
     if (is.na(match(unk_b_grp, summarized_blanks$Blanking_group)) == TRUE) {
-      warning(paste("WARNING: No blank available for group ", unk_b_grp, ", for Plate_number ", unique(summarized_unknowns$Plate_number), 
+      warning(paste("No blank available for group ", unk_b_grp, ", for Plate_number ", unique(summarized_unknowns$Plate_number), 
                     ". Will not generate concentration values for any of the measurements from this blanking group.", sep = ""))
     }
     matching_row <- match(unk_b_grp, summarized_blanks$Blanking_group)
@@ -306,7 +306,7 @@ blank_unknowns <- function(summarized_unknowns, summarized_blanks) {
     # Throw a warning if standard deviation exists and is >10% of average
     if (is.na(blank_abs_sd) == FALSE) {
       if (blank_abs_sd > (0.1 * blank_abs)) {
-        warning(paste("WARNING: Plate_number ", unique(summarized_unknowns$Plate_number), ": Blanking unknowns: standard deviation of blank for group ", unk_b_grp," is >10% of the average value of the blank. Something could be fishy with the input data.", sep = ""))
+        warning(paste("Plate_number ", unique(summarized_unknowns$Plate_number), ": Blanking unknowns: standard deviation of blank for group ", unk_b_grp," is >10% of the average value of the blank. Something could be fishy with the input data.", sep = ""))
       }
     }
     
@@ -345,6 +345,54 @@ convert_to_concentration <- function(data_table, std_list) {
   unk_summ$StdDev_Concentration_uM <- (unk_summ$StdDev_abs / std_list$Trendline$Slope) * unk_summ$Dilution_factor
   # For calculating std dev like this, see http://www.psychstat.missouristate.edu/introbook/sbk15.htm, accessed ~Jan. 2017
   
+  # Throw a warning if some concentrations are negative
+  if (min(unk_summ$Ave_concentration_uM) <= 0) {
+    neg_values_positions <- which(unk_summ$Ave_concentration_uM <= 0)
+    neg_values <- unk_summ$Ave_concentration_uM[neg_values_positions]
+    num_neg_values <- length(neg_values)
+    neg_values_readable <- glue::collapse(round(neg_values, 3), sep = ", ")
+    
+    # Omit those from standard curve plotting data frame
+    unk_summ_plot <- unk_summ[-neg_values_positions,]
+    
+    # Report what was done
+    if (num_neg_values == 1) {
+      warning("Plate_number ", unique(unk_summ$Plate_number), ": ", num_neg_values, " sample has a negative concentration based on standard curve (",
+              glue::collapse(round(neg_values, 3), sep = ", "), "). Will keep in final table but omit from standard curve plot.", sep = "")
+    } else if (num_neg_values > 1) {
+      warning("Plate_number ", unique(unk_summ$Plate_number), ": ", num_neg_values, " samples have negative concentrations based on standard curve (",
+              neg_values_readable, "). Will keep in final table but omit from standard curve plot.", sep = "")
+    }
+    
+    # (Probably rare:) Check that negative absorbances do not remain even after removing negative concentrations. If they do remain, then remove them
+    if (min(unk_summ_plot$Ave_abs_blanked) < 0) {
+      neg_abs_positions <- which(unk_summ_plot$Ave_abs_blanked <= 0)
+      unk_summ_plot <- unk_summ_plot[-neg_abs_positions,]
+      
+      warning(paste("Plate_number ", unique(unk_summ$Plate_number), ": Also removed ", num_neg_values, " additional samples with positive concentrations but negative blanked absorbances from standard curve plot.", sep = ""))
+    }
+    
+  } else {
+    # No issues with negative concentrations.
+    unk_summ_plot <- unk_summ
+  }
+  
+  # Generate error bar values in plotting data frame ahead of time and see if any are below zero (will cause error due to log scale)
+  unk_summ_plot$errorbar_min <- unk_summ_plot$Ave_abs_blanked - unk_summ_plot$StdDev_abs
+  unk_summ_plot$errorbar_max <- unk_summ_plot$Ave_abs_blanked + unk_summ_plot$StdDev_abs
+  
+  if (min(unk_summ_plot$errorbar_max) < 0) {
+    # Max error bar should not be < 0 at this point, because negative data points for concentration were already removed
+    warning(paste("Plate_number ", unique(unk_summ$Plate_number), ": something seems wrong with the error bars on samples in the standard curve plots...", sep = ""))
+    
+  } else if (min(unk_summ_plot$errorbar_min) < 0) {
+    # Eliminate negative values and replace with the value of the point itself (so bottom bars will essentially be unplotted)
+    neg_errorbar_pos <- which(unk_summ_plot$errorbar_min < 0)
+    unk_summ_plot$errorbar_min[neg_errorbar_pos] <- unk_summ_plot$Ave_abs_blanked[neg_errorbar_pos]
+    
+    warning(paste("Plate_number ", unique(unk_summ$Plate_number), ": had to remove negative min. error bar positions for ", length(neg_errorbar_pos), 
+                " sample(s) in the std. curve plot in order to make the sample(s) plot-able. Unchanged in the actual data, however...", sep = ""))
+  }
   
   # Figure out where to put the trend line equation text on the plot
   min_x <- min(std_list$Standards_blanked$Standard_conc)
@@ -385,8 +433,8 @@ convert_to_concentration <- function(data_table, std_list) {
   
   # Add on samples to the standard plot
   unk_plot <- std_plot +
-    geom_errorbar(data = unk_summ, aes(x = (Ave_concentration_uM / Dilution_factor), ymin = Ave_abs_blanked-StdDev_abs, ymax = Ave_abs_blanked+StdDev_abs), width = 0, size = 0.8, alpha = 0.8, colour = "darkcyan") +
-    geom_point(data = unk_summ, aes((Ave_concentration_uM / Dilution_factor), Ave_abs_blanked), shape = 21, alpha = 0.8, size = 3, fill = "darkcyan")
+    geom_errorbar(data = unk_summ_plot, aes(x = (Ave_concentration_uM / Dilution_factor), ymin = errorbar_min, ymax = errorbar_max), width = 0, size = 0.8, alpha = 0.8, colour = "darkcyan") +
+    geom_point(data = unk_summ_plot, aes((Ave_concentration_uM / Dilution_factor), Ave_abs_blanked), shape = 21, alpha = 0.8, size = 3, fill = "darkcyan")
     
   # # Print plot to the screen
   # print(unk_plot)
