@@ -221,9 +221,11 @@ make_standard_curve <- function(data_table) {
   std_blank_row <- match(std_Blanking_group, blanks_summ$Blanking_group)
   std_blank_abs <- as.numeric(blanks_summ[std_blank_row,"Ave_abs"])
   std_blank_abs_sd <- as.numeric(blanks_summ[std_blank_row,"StdDev_abs"])
-  # Check that standard deviation is less than 10% to make sure the blank is okay. If not, throw a warning.
-  if (std_blank_abs_sd > (0.1 * std_blank_abs)) {
-    warning(paste("WARNING: Plate_number ", unique(data_table$Plate_number), ": std. dev. of standards blank is >10% of its average. Something could be fishy with the input data.", sep = ""))
+  # Check that standard deviation (if exists) is less than 10% to make sure the blank is okay. If not, throw a warning.
+  if (is.na(std_blank_abs_sd) == FALSE) {
+    if (std_blank_abs_sd > (0.1 * std_blank_abs)) {
+      warning(paste("WARNING: Plate_number ", unique(data_table$Plate_number), ": std. dev. of standards blank is >10% of its average. Something could be fishy with the input data.", sep = ""))
+    }
   }
   
   # Check if blank absorbance is greater than absorbance of lowest standard
