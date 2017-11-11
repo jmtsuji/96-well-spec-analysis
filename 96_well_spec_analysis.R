@@ -4,24 +4,6 @@
 # Version 4.0.4_xinda
 # Last updated: Oct 5th, 2017
 
-# Notes: to use:
-# 1. Summarize your sample naming info via "Sample_naming_template_v4.0.0.xslx":
-#     a. Enter your info into the 96 well plates and standards table
-#     b. Click on the "Organize" button. The info should be pasted into "long" format in the second worksheet.
-#     c. Copy the contents of this spreadsheet into a text editor (or a new session of Excel) and save in "Tab Delimited" format (or just .txt/.tsv in a text editor)
-# 2. Summarize your plate data:
-#     a. Export the plate data from the plate reader in the "columns" format as a .txt file (can only handle one plate at a time, currently)
-#     b. In a text editor, open the file and then convert the encoding from UTF-16 to UTF-8, for import into R. Also, convert the line spacing style from Windows to Unix.
-#     c. Convert from this filetype into "long" format using this script. Set "unparsed_plate_data" to TRUE and run with the raw data as the "plate_data_filename".
-#         The script will exit early (looks like a warning, but is actually okay), and will give you a "parsed" version of the data in your file folder.
-#     d. Open the resulting data file and add the date to the "Date" column in this format: "dd-mmm-yy"
-# 3. Combine multiple days' worth of plate data
-#     a. Open the summarized plate data from each day (e.g., in Excel or a text editor). Combine all into a single table and save.
-#     b. Repeat for the sample naming from each day.
-# 4. Load the combined plate data and sampling naming data into this script (with "unparsed_plate_data" as FALSE)
-#     ...and you're good to go!
-# Note that I'm also using a "Fe additions log" to note when additional Fe is spiked into the cultures. You could always drop this -- just comment out the lines of code that cite "Fe2_additions_log".
-
 #####################################################
 ## Script settings: #################################
 setwd("/Users/JTsuji/Documents/Research_General/PhD/19 other analyses/171110_xinda_NO2/") # your working directory where files are stored
