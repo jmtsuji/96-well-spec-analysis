@@ -26,8 +26,8 @@
 ## Script settings: #################################
 setwd("/Users/JTsuji/Documents/Research_General/PhD/19 other analyses/171110_xinda_NO2/") # your working directory where files are stored
 unparsed_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
-plate_data_filename <- c("01_raw/NO2_H2_both_depth_30C.txt", "01_raw/NO2_H2_both_depth_30C_2.txt") # Add in a vector if using multiple filenames
-plate_order_filename <- "01_raw/NO2_sample_naming_test.txt"
+plate_data_filename <- c("01_raw/NO2_H2_both_depth_30C.txt") # Add in a vector if using multiple filenames
+plate_order_filename <- "01_raw/NO2_sample_naming.txt"
 print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
 print_processed_data <- TRUE # print data tables?
 force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
@@ -358,7 +358,7 @@ convert_to_concentration <- function(data_table, std_list) {
     scale_y_log10() +
     annotation_logticks() +
     xlab("Concentration (uM)") +
-    ylab("Absorbance (550 nm)") +
+    ylab("Absorbance") +
     ggtitle(paste("Plate_number: ", unique(data_table$Plate_number), sep = ""))
   
   # # Print plot to the screen
@@ -455,16 +455,23 @@ plate_data_trendlines <- plate_data_trendlines[,c(4,2,1,3)]
 if (print_processed_data == TRUE) {
   # Modify input file name as the output name for the table
   table_filenames_prefix <- substr(plate_data_filename, 1, nchar(plate_data_filename)-4)
-  table_filenames <- c(paste(table_filenames_prefix, "_unknowns.tsv", sep = ""),
-                   paste(table_filenames_prefix, "_standards.tsv", sep = ""),
-                   paste(table_filenames_prefix, "_blanks.tsv", sep = ""),
-                   paste(table_filenames_prefix, "_trendlines.tsv", sep = ""))
+  
+  table_sheetnames <- c("Unknowns", "Standards", "Blanks", "Trendlines")
   tables_to_write <- list(plate_data_unknowns, plate_data_standards, plate_data_blanks, plate_data_trendlines)
   
-  # Write table
+  # Save as Excel workbook with multiple sheets
+  xlsx_table_filename <- paste(table_filenames_prefix, "_calculations.xlsx", sep = "")
   for (i in 1:length(tables_to_write)) {
-    write.table(tables_to_write[[i]], file = table_filenames[[i]], sep = "\t", col.names = TRUE, row.names = FALSE)
+    if (i == 1) {
+      write.xlsx2(as.data.frame(tables_to_write[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=FALSE)
+    } else {
+      write.xlsx2(as.data.frame(tables_to_write[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=TRUE)
+    }
   }
+  
+  # Also export unknowns as TSV in case helpful to the user
+  table_filename_unknowns <- paste(table_filenames_prefix, "_unknowns.tsv", sep = "")
+  write.table(plate_data_unknowns, file = table_filename_unknowns, sep = "\t", col.names = TRUE, row.names = FALSE)
   
   # # Write user-friendly data to Excel spreadsheet (multi-sheet)
   # xlsx_table_filename <- paste(table_filenames_prefix, "_unknowns_readable.xlsx", sep = "")
