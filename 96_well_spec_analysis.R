@@ -425,7 +425,7 @@ convert_to_concentration <- function(data_table, std_list) {
     scale_y_log10() +
     annotation_logticks() +
     xlab("Concentration (uM)") +
-    ylab("Absorbance") +
+    ylab("Absorbance (blanked)") +
     ggtitle(paste("Plate_number: ", unique(data_table$Plate_number), sep = ""))
   
   # # Print plot to the screen
