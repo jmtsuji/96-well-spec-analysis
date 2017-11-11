@@ -5,7 +5,17 @@ Copyright Jackson M. Tsuji, 2017
 
 **NOTE: this script is in development and should not be used for important analyses without consulting the script author (Jackson M. Tsuji).
 
+# Dependencies (R packages)
+* [`plyr`](https://cran.r-project.org/web/packages/plyr/index.html)
+* [`dplyr`](http://dplyr.tidyverse.org)
+* [`ggplot2`](http://ggplot2.tidyverse.org)
+* [`reshape2`](https://cran.r-project.org/web/packages/reshape2/index.html)
+* [`xlsx`](https://cran.r-project.org/web/packages/xlsx/index.html)
+* Can be installed by running: `install.packages(c("plyr", "dplyr", "ggplot2", "reshape2", "xlsx"), dependencies = TRUE)`
+
 # Usage
+This script must be run within a console (e.g., RStudio) by modifying paramters in the "User variables" section in the first few lines of the code and then running. The input is raw, exported 96 well plate absorbance data (TXT format; see below) from the Neufeld lab 96 well plate reader. Below are instructions for how to appropriately use the "User variables":
+
 ```unparsed_plate_data``` - set as TRUE if you are adding in files directly from the 96 well plate reader (exported in "column" mode as .txt files). Recommended. Set as FALSE if you've already imported your data previously and want to analyze it again.
 
 ```plate_data_filename``` - the name of the plate data file (see type of file above). Plate data files can contain **more than one plates' worth of data**. **Also, you can analyze multiple raw plate data files simultaneously by giving their names as a character vector** (e.g., ```plate_data_filename <- c("file1.txt", "file2.txt")```). The order matters if importing multiple files. Plates will be numbered sequentially (i.e., 1, 2, 3) based on the order within each individual file AND the file name order provided. For example: suppose file1.txt contains 3 plates and file2.txt contains 2 plates. In this case, the three plates in file1.txt will be called plate #s 1, 2, and 3, and the two plates in file2.txt will be called plate #s 4 and 5. **This matters for when you build the sample naming sheet**.
