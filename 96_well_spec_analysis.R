@@ -5,7 +5,7 @@
 # Last updated: Oct 5th, 2017
 
 #####################################################
-## Script settings: #################################
+## User variables: #################################
 setwd("/Users/JTsuji/Documents/Research_General/PhD/19 other analyses/171110_xinda_NO2/") # your working directory where files are stored
 unparsed_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
 plate_data_filename <- c("01_raw/NO2_H2_both_depth_30C.txt") # Add in a vector if using multiple filenames
