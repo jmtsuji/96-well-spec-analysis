@@ -1,15 +1,15 @@
 # 96 well spectrophotometer data analysis (ferrozine)
 # Copyright Jackson M. Tsuji (Neufeld Lab PhD student), 2017
-# Created Nov 11th, 2016
+# Created Nov 10th, 2016
 # Description: Imports and processes data from the 96 well plate reader
 
 #####################################################
 ## User variables: #################################
-setwd("/Users/JTsuji/Documents/Research_General/PhD/19 other analyses/171110_xinda_NO2/") # your working directory where files are stored
+setwd("/Users/JTsuji/Documents/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
 parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
-plate_data_filename <- c("03_test_with_script/NO2_H2_both_depth_30C.txt", "03_test_with_script/NO2_H2_both_depth_30C_2.txt") # Add in a vector if using multiple filenames
+plate_data_filename <- c("example_raw_plate_data_1.txt", "example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
                         # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
-sample_order_filename <- "03_test_with_script/NO2_sample_naming_test.txt" # Not needed if parse_raw_plate_data == FALSE
+sample_order_filename <- "example_sample_naming.tsv" # Not needed if parse_raw_plate_data == FALSE
 print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
 print_processed_data <- TRUE # print data tables?
 force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
@@ -582,3 +582,6 @@ if (print_plots == TRUE) {
 } else {
   print(std_plots_list) # prints to screen if a PDF printout is not wanted
 }
+
+# Finished running the script
+print("96_well_spec_analysis.R: finished.")
