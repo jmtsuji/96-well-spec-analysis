@@ -25,10 +25,9 @@
 #####################################################
 ## Script settings: #################################
 setwd("/Users/JTsuji/Documents/Research_General/PhD/19 other analyses/171110_xinda_NO2/") # your working directory where files are stored
-unparsed_plate_data <- T # Set TRUE if you need to parse raw plate data. Will parse, then exit.
-plate_number <- 1 # Set if unparsed_plate_data is TRUE
-plate_data_filename <- "02_split/NO2_plate1.txt"
-plate_order_filename <- "02_split/NO2_plate1_naming.tsv"
+unparsed_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
+plate_data_filename <- c("01_raw/NO2_H2_both_depth_30C.txt", "01_raw/NO2_H2_both_depth_30C_2.txt") # Add in a vector if using multiple filenames
+plate_order_filename <- "01_raw/NO2_sample_naming_test.txt"
 print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
 print_processed_data <- TRUE # print data tables?
 force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
@@ -50,13 +49,42 @@ library(xlsx)
 ### Part A: Input data and clean up #################
 #####################################################
 # Get prefix name of input data file for naming output files
-output_filenames_prefix <- substr(plate_data_filename, 1, nchar(plate_data_filename)-4)
+output_filenames_prefix <- substr(plate_data_filename[1], 1, nchar(plate_data_filename[1])-4)
 
-if (unparsed_plate_data == TRUE) {
-  print("Parsing plate data...")
+# Funtion to pull one plate of data from an input file
+get_individual_plate <- function(unparsed_plate_data, plate_ending_line, plate_num) {
+  # test data
+  # unparsed_plate_data <- unparsed_data
+  # plate_ending_line <- plate_endings[1]
+  # plate_num <- 1
   
-  # Read the vectorized input
-  con <- file("01_raw/NO2_H2_both_depth_30C.txt", encoding = "UTF-16LE")
+  # Get the lines where the absorbance and well data is kept for the plate
+  plate_lines <- c((plate_ending_line - 2), (plate_ending_line -1))
+  
+  # Pull the lines from the unparsed file
+  plate_unparsed <- unparsed_plate_data[plate_lines]
+  
+  # Eliminate the first two tabs
+  plate_unparsed <- gsub("^\t\t", "", plate_unparsed)
+  
+  # Make a table out of the absorbance data
+  plate_parsed <- strsplit(plate_unparsed, "\t")
+  names(plate_parsed) <- c("Well", "Absorbance")
+  plate_parsed$Absorbance <- as.numeric(plate_parsed$Absorbance)
+  plate_parsed <- data.frame("Plate_number" = plate_num, 
+                             "Well" = plate_parsed[[1]], 
+                             "Absorbance" = plate_parsed[[2]], 
+                             stringsAsFactors = FALSE)
+  
+  return(plate_parsed)
+}
+
+# Function to read one input file (can contain multiple plates)
+parse_input_file <- function(file_name) {
+  # file_name <- plate_data_filename[1]
+  
+  # Read the vectorized input - got code here from the readLines help file
+  con <- file(file_name, encoding = "UTF-16LE") # Assumed encoding based on the output of the plate reader software
   unparsed_data <- readLines(con)
   close(con)
   # unique(Encoding(A))
@@ -68,40 +96,59 @@ if (unparsed_plate_data == TRUE) {
   # Determine the number of plates
   plate_endings <- grep("^~End", unparsed_data)
   number_of_plates <- length(plate_endings)
-  print(paste("Found ",number_of_plates," plates' worth of plate data.", sep = ""))
+  print(paste("File ", file_name, ": found ",number_of_plates," plates' worth of plate data.", sep = ""))
   
-  # Funtion to pull plate data
-  get_individual_plate <- function(unparsed_plate_data, plate_ending_line, plate_num) {
-    # test data
-    # unparsed_plate_data <- unparsed_data
-    # plate_ending_line <- plate_endings[1]
-    # plate_num <- 1
-    
-    # Get the lines where the absorbance and well data is kept for the plate
-    plate_lines <- c((plate_ending_line - 2), (plate_ending_line -1))
-    
-    # Pull the lines from the unparsed file
-    plate_unparsed <- unparsed_data[plate_lines]
-    
-    # Eliminate the first two tabs
-    plate_unparsed <- gsub("^\t\t", "", plate_unparsed)
-    
-    # Make a table out of the absorbance data
-    plate_parsed <- strsplit(plate_unparsed, "\t")
-    names(plate_parsed) <- c("Well", "Absorbance")
-    plate_parsed$Absorbance <- as.numeric(plate_parsed$Absorbance)
-    plate_parsed <- data.frame("Plate_number" = plate_num, 
-                               "Well" = plate_parsed[[1]], 
-                               "Absorbance" = plate_parsed[[2]], 
-                               stringsAsFactors = FALSE)
-    
-    return(plate_parsed)
+  # Call function to get the data for each plate
+  plate_data <- lapply(1:number_of_plates, function(x) {get_individual_plate(unparsed_data, plate_endings[x], x)})
+  
+  # Combine into a single data frame
+  plate_data <- dplyr::bind_rows(plate_data)
+  
+  return(plate_data)
+}
+
+if (unparsed_plate_data == TRUE) {
+  print("Parsing plate data...")
+  
+  # Determine number of files provided
+  number_of_files <- length(plate_data_filename)
+  if (number_of_files == 1) {
+    print(paste("Loading data from ", number_of_files, " file...", sep = ""))
+  } else if (number_of_files > 1) {
+    print(paste("Loading data from ", number_of_files, " files in sequential order...", sep = ""))
+  } else {
+    stop("ERROR: no input files detected")
   }
   
-  # Get all plate data
-  plate_data <- lapply(1:number_of_plates, function(x) {get_individual_plate(unparsed_plate_data, plate_endings[x], x)})
+  all_files_plate_data <- lapply(plate_data_filename, function(x) { parse_input_file(x) })
   
-  print("Successfully read in plate data.")
+  # Determine total number of plates and renumber plates to match
+  # Start with an empty vector and add plates in a loop
+  total_plate_number <- 0
+  for (i in 1:length(all_files_plate_data)) {
+    # i <- 1
+    
+    # Get the plate number up to this point in the loop
+    current_plate_number <- total_plate_number
+    
+    # Get the numbers of the plates from the file being examined
+    plate_nums <- unique(all_files_plate_data[[i]]$Plate_number)
+    plates_in_file <- length(plate_nums)
+    
+    # Determine new plate numbers to assign based on current position in the loop
+    new_plate_nums <- seq(from = (current_plate_number + 1), to = (current_plate_number + plates_in_file))
+
+    # Re-number the plates in that plate file
+    all_files_plate_data[[i]]$Plate_number <- plyr::mapvalues(all_files_plate_data[[i]]$Plate_number, from = plate_nums, to = new_plate_nums)
+    
+    # Add to the total number of plates
+    total_plate_number <- total_plate_number + plates_in_file
+  }
+  
+  all_files_plate_data <- dplyr::bind_rows(all_files_plate_data)
+  
+  print(paste("Successfully read in plate data from ", total_plate_number, " plates.", sep = ""))
+  
 } else {
   plate_data <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   
@@ -116,11 +163,12 @@ if (unparsed_plate_data == TRUE) {
 plate_order <- read.table(plate_order_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
 
 ## Join sample order data with absorbance data
-plate_data_merged <- dplyr::inner_join(plate_data, plate_order, by = c("Well","Date"))
+plate_data_merged <- dplyr::inner_join(all_files_plate_data, plate_order, by = c("Well","Plate_number"))
 
 # Export combined data
 merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
 write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
+
 
 ###############################################
 ### Part B: Process standards and unknowns #################
