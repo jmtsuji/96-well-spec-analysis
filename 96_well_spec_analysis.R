@@ -268,10 +268,13 @@ make_standard_curve <- function(data_table) {
 }
 
 # Function to adjust absorbances of unknowns based on blanks
-# (messy function; need to rewrite for clarity)
+# (need to refactor nested loop for clarity)
 blank_unknowns <- function(summarized_unknowns, summarized_blanks) {
-  # summarized_unknowns <- unknowns_data[[1]]$unk_summ
-  # summarized_blanks <- plate_data_stds[[1]]$Blanks_all
+  # # Test variables
+  # unk_raw <- dplyr::filter(plate_data_sep[[1]], Sample_type == "Unknown")
+  # unk_grouped <- group_by(unk_raw, Blanking_group, Treatment, Sample_name, Dilution_factor, Plate_number, Replicate)
+  # summarized_unknowns <- summarise(unk_grouped, Ave_abs = mean(Absorbance), StdDev_abs = sd(Absorbance))
+  # summarized_blanks <- make_standard_curve(plate_data_sep[[1]])$Blanks_all
   
   # Get all Blanking Groups
   unk_Blanking_groups <- as.character(unique(summarized_unknowns$Blanking_group))
@@ -298,10 +301,12 @@ blank_unknowns <- function(summarized_unknowns, summarized_blanks) {
     blank_abs <- as.numeric(summarized_blanks[matching_row,"Ave_abs"])
     blank_abs_sd <- as.numeric(summarized_blanks[matching_row,"StdDev_abs"])
     
-    # # Throw a warning if standard deviation is >10% of average
-    # if (blank_abs_sd > (0.1 * blank_abs)) {
-    #   warning(paste("WARNING: Blanking unknowns: standard deviation of blank for ", unique(summarized_unknowns$Plate_number), ", ", unk_b_grp," is >10% of the average value of the blank. Something could be fishy with the input data.", sep = ""))
-    # }
+    # Throw a warning if standard deviation exists and is >10% of average
+    if (is.na(blank_abs_sd) == FALSE) {
+      if (blank_abs_sd > (0.1 * blank_abs)) {
+        warning(paste("WARNING: Plate_number ", unique(summarized_unknowns$Plate_number), ": Blanking unknowns: standard deviation of blank for group ", unk_b_grp," is >10% of the average value of the blank. Something could be fishy with the input data.", sep = ""))
+      }
+    }
     
     # Find unknowns matching the standard
     unknowns_row_num <- which(summarized_unknowns$Blanking_group %in% unk_b_grp) # https://stackoverflow.com/a/30282302, accessed 170925
