@@ -397,13 +397,21 @@ convert_to_concentration <- function(data_table, std_list) {
 
 }
 
-# Optionally perform a visual check of the data
+# Function to perform a visual check of the data by making a 96 well plate
 visual_check <- function(data_table) {
   # data_table <- plate_data_sep[[2]]
   
   # Split wells into row and column
   data_table$Well_row <- as.character(substr(data_table$Well, start = 1, stop = 1))
   data_table$Well_col <- as.numeric(substr(data_table$Well, start = 2, stop = 3))
+  
+  # Make table of all wells in a 96 well plate to merge with main table
+  # (in case some wells have been omitted by the user from the main table; this way, the entire 96 well plate will appear in the figure)
+  wells_96 <- data.frame("Well_row" = c(rep("A", 12), rep("B", 12), rep("C", 12), rep("D", 12), rep("E", 12), rep("F", 12), rep("G", 12), rep("H", 12)),
+                         "Well_col" = rep(c(1:12), 8), stringsAsFactors = FALSE)
+  
+  # Merge tables
+  data_table <- dplyr::full_join(data_table, wells_96, by = c("Well_row", "Well_col"))
   
   # Put rows in order
   data_table$Well_row <- factor(data_table$Well_row, levels = rev(c("A", "B", "C", "D", "E", "F", "G", "H")), ordered = TRUE)
@@ -412,13 +420,13 @@ visual_check <- function(data_table) {
   data_table$Annotation <- paste(data_table$Sample_name, " ", data_table$Replicate, "\n", data_table$Absorbance, sep = "")
   # Clean out ones with no sample
   for (i in 1:length(data_table$Annotation)) {
-    if (data_table$Sample_name[i] == "") {
+    if (data_table$Sample_name[i] == "" | is.na(data_table$Sample_name[i]) == TRUE) {
       data_table$Annotation[i] <- ""
     }
   }
   
   plate_diagram <- ggplot(data_table, aes(factor(Well_col), Well_row)) +
-    geom_point(aes(fill = Absorbance), shape = 21, size = 10) +
+    geom_point(aes(fill = Absorbance), shape = 21, size = 18) +
     geom_text(aes(label = Annotation), size = 2) +
     scale_fill_gradientn(colours = c("#ffffff", "#ff3399", "#660066"), limits = c(0,1)) + # Used limits to set absolute colour scale, as recommended at https://stackoverflow.com/a/21538521 (accessed Oct 2nd, 2017)
     xlab("") +
