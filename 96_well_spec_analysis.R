@@ -7,9 +7,9 @@
 ## User variables: #################################
 setwd("/Users/JTsuji/Documents/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
 parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
-plate_data_filename <- c("example_raw_plate_data_1.txt", "example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
+plate_data_filename <- c("example_input/example_raw_plate_data_1.txt", "example_input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
                         # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
-sample_order_filename <- "example_sample_naming.tsv" # Not needed if parse_raw_plate_data == FALSE
+sample_order_filename <- "example_input/example_sample_naming.tsv" # Not needed if parse_raw_plate_data == FALSE
 print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
 print_processed_data <- TRUE # print data tables?
 force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
@@ -514,10 +514,10 @@ if (print_plots == TRUE) {
 
 # Separate additional information provided by the user in the sample naming sheet to be integrated with output tables
 # Remove irrelevant information
-cols_to_remove <- c("Plate_number", "Well", "Absorbance", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
+cols_to_remove <- c("Well", "Absorbance", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
 cols_nums_to_remove <- match(cols_to_remove, colnames(plate_data_merged))
 extra_sample_info <- unique(plate_data_merged[,-(cols_nums_to_remove)])
-merging_cols <- c("Sample_name", "Replicate", "Treatment") # to use with left_join later
+merging_cols <- c("Plate_number", "Sample_name", "Replicate", "Treatment") # to use with join later
 
 # Summarize the unknowns (samples) data and re-order for clarity
 plate_data_unknowns <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["unk_summ"]]}))
