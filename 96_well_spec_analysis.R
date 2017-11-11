@@ -177,11 +177,11 @@ if (parse_raw_plate_data == TRUE) {
   
 } else {
   # Read in pre-merged plate/sample data
-  plate_data <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+  plate_data_merged <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   
   # Check if plate number column exists for multiple plates. If it does not, exit early.
   required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Replicate", "Sample_type", "Treatment", "Blanking_group", "Dilution_factor", "Standard_conc")
-  req_col_test <- unique(required_colnames %in% colnames(plate_data))
+  req_col_test <- unique(required_colnames %in% colnames(plate_data_merged))
   if (length(req_col_test) == 1 && req_col_test[1] == TRUE) {
     stop("ERROR: Missing required table column (should include plate absorbance data and sample naming data; see README.md). Exiting...")
   }
@@ -457,14 +457,18 @@ if (print_plots == TRUE) {
 ### Part C: Summarize output #################
 ###############################################
 
+# Separate additional information provided by the user in the sample naming sheet to be integrated with output tables
+# Remove irrelevant information
+cols_to_remove <- c("Plate_number", "Well", "Absorbance", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
+cols_nums_to_remove <- match(cols_to_remove, colnames(plate_data_merged))
+extra_sample_info <- plate_data_merged[,-(cols_nums_to_remove)]
+merging_cols <- c("Sample_name", "Replicate", "Treatment") # to use with left_join later
+
 # Summarize the unknowns (samples) data and re-order for clarity
 plate_data_unknowns <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["unk_summ"]]}))
-# plate_data_unknowns$Date <- as.Date(plate_data_unknowns$Date, format = "%d-%b-%y")
 plate_data_unknowns <- plate_data_unknowns[,c(5,3,6,2,4,1,7,8,11,12,13)]
-
-# # Also make user-friendly unknowns data
-# plate_data_unknowns_readable <- reshape2::dcast(plate_data_unknowns, Sample_name + Replicate + Treatment ~ Date, value.var = "Ave_concentration_uM")
-# plate_data_unknowns_readable_sd <- reshape2::dcast(plate_data_unknowns, Sample_name + Replicate + Treatment ~ Date, value.var = "StdDev_Concentration_uM")
+# Join in other sample info provided by the user
+plate_data_unknowns <- dplyr::left_join(plate_data_unknowns, extra_sample_info, by = merging_cols)
 
 # Summarize standards and re-order for clarity
 plate_data_standards <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Standards_blanked"]]}))
@@ -500,12 +504,6 @@ if (print_processed_data == TRUE) {
   table_filename_unknowns <- paste(table_filenames_prefix, "_unknowns.tsv", sep = "")
   write.table(plate_data_unknowns, file = table_filename_unknowns, sep = "\t", col.names = TRUE, row.names = FALSE)
   
-  # # Write user-friendly data to Excel spreadsheet (multi-sheet)
-  # xlsx_table_filename <- paste(table_filenames_prefix, "_unknowns_readable.xlsx", sep = "")
-  # options(xlsx.date.format = "yyyy-MM-dd") # Doesn't seem to affect anything currently
-  # write.xlsx2(plate_data_unknowns_readable, xlsx_table_filename, sheetName="conc_uM_readable", col.names=TRUE, row.names=FALSE, append=FALSE)
-  # write.xlsx2(plate_data_unknowns_readable_sd, xlsx_table_filename, sheetName="StdDev_uM_readable", col.names=TRUE, row.names=FALSE, append=TRUE)
-
 }
 
 # Make multi-panel standard curve plots, if desired
