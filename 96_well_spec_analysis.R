@@ -1,15 +1,15 @@
 # 96 well spectrophotometer data analysis (ferrozine)
-# Created Nov 11th, 2016 by Jackson Tsuji (Neufeld Lab PhD student)
-# Description: Imports and processes pre-organized 96 well plate data.
-# Version 4.0.4_xinda
-# Last updated: Oct 5th, 2017
+# Copyright Jackson M. Tsuji (Neufeld Lab PhD student), 2017
+# Created Nov 11th, 2016
+# Description: Imports and processes data from the 96 well plate reader
 
 #####################################################
 ## User variables: #################################
 setwd("/Users/JTsuji/Documents/Research_General/PhD/19 other analyses/171110_xinda_NO2/") # your working directory where files are stored
-unparsed_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
+parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
 plate_data_filename <- c("01_raw/NO2_H2_both_depth_30C.txt") # Add in a vector if using multiple filenames
-plate_order_filename <- "01_raw/NO2_sample_naming.txt"
+                        # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
+sample_order_filename <- "01_raw/NO2_sample_naming_test2.txt" # Not needed if parse_raw_plate_data == FALSE
 print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
 print_processed_data <- TRUE # print data tables?
 force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
@@ -89,7 +89,63 @@ parse_input_file <- function(file_name) {
   return(plate_data)
 }
 
-if (unparsed_plate_data == TRUE) {
+# Function to correct for plate numbers between raw files and merge into a single table
+revalue_plate_numbers <- function(all_plates_list) {
+  # all_plates_list <- all_files_plate_data
+  
+  # Determine total number of plates and renumber plates to match
+  # Start with an empty vector and add plates in a loop
+  total_plate_number <- 0
+  for (i in 1:length(all_plates_list)) {
+    # i <- 1
+    
+    # Get the plate number up to this point in the loop
+    current_plate_number <- total_plate_number
+    
+    # Get the numbers of the plates from the file being examined
+    plate_nums <- unique(all_plates_list[[i]]$Plate_number)
+    plates_in_file <- length(plate_nums)
+    
+    # Determine new plate numbers to assign based on current position in the loop
+    new_plate_nums <- seq(from = (current_plate_number + 1), to = (current_plate_number + plates_in_file))
+    
+    # Re-number the plates in that plate file
+    all_plates_list[[i]]$Plate_number <- plyr::mapvalues(all_plates_list[[i]]$Plate_number, from = plate_nums, to = new_plate_nums)
+    
+    # Add to the total number of plates
+    total_plate_number <- total_plate_number + plates_in_file
+  }
+  
+  all_plate_data <- dplyr::bind_rows(all_plates_list)
+  
+  # Check number of plates found in for loop matches the number evident after merging
+  final_plate_number <- length(unique(all_plate_data$Plate_number))
+  if (total_plate_number != final_plate_number) {
+    stop("ERROR: problem encountered in plate renumbering during file import. Exiting out.")
+  } else {
+    print(paste("Imported data from a total of ", final_plate_number, " plate(s).", sep = ""))
+  }
+  
+  return(all_plate_data)
+}
+
+# Function to add sample naming data to the parsed absorbance data
+add_sample_naming <- function(all_plate_data, order_filename) {
+  ## Import sample order data
+  plate_order <- read.table(order_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+  
+  ## Check if the sample naming and plate abosorbance data have the same number of plates, and throw a warning if not
+  if (identical(unique(plate_order$Plate_number), unique(all_plate_data$Plate_number)) == FALSE) {
+    warning("WARNING: Number of plates in raw data files and sample naming sheet do not match. NA values will be placed where there are unmatched plates and may cause unexpected behaviour.")
+  }
+  
+  ## Join sample order data with absorbance data
+  all_plate_data_merged <- dplyr::full_join(all_plate_data, plate_order, by = c("Well","Plate_number"))
+  
+  return(all_plate_data_merged)
+}
+
+if (parse_raw_plate_data == TRUE) {
   print("Parsing plate data...")
   
   # Determine number of files provided
@@ -102,60 +158,34 @@ if (unparsed_plate_data == TRUE) {
     stop("ERROR: no input files detected")
   }
   
+  # Parse each input file
   all_files_plate_data <- lapply(plate_data_filename, function(x) { parse_input_file(x) })
   
-  # Determine total number of plates and renumber plates to match
-  # Start with an empty vector and add plates in a loop
-  total_plate_number <- 0
-  for (i in 1:length(all_files_plate_data)) {
-    # i <- 1
+  # Combine into a single table
+  all_files_plate_data <- revalue_plate_numbers(all_files_plate_data)
+  
+  # Add sample naming data
+  plate_data_merged <- add_sample_naming(all_files_plate_data, sample_order_filename)
     
-    # Get the plate number up to this point in the loop
-    current_plate_number <- total_plate_number
-    
-    # Get the numbers of the plates from the file being examined
-    plate_nums <- unique(all_files_plate_data[[i]]$Plate_number)
-    plates_in_file <- length(plate_nums)
-    
-    # Determine new plate numbers to assign based on current position in the loop
-    new_plate_nums <- seq(from = (current_plate_number + 1), to = (current_plate_number + plates_in_file))
-
-    # Re-number the plates in that plate file
-    all_files_plate_data[[i]]$Plate_number <- plyr::mapvalues(all_files_plate_data[[i]]$Plate_number, from = plate_nums, to = new_plate_nums)
-    
-    # Add to the total number of plates
-    total_plate_number <- total_plate_number + plates_in_file
+  print("Successfully read in plate data and sample naming data.")
+  
+  # Export combined data if desired
+  if (print_processed_data == TRUE) {
+    merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
+    write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
   }
   
-  all_files_plate_data <- dplyr::bind_rows(all_files_plate_data)
-  
-  print(paste("Successfully read in plate data from ", total_plate_number, " plates.", sep = ""))
-  
 } else {
+  # Read in pre-merged plate/sample data
   plate_data <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   
   # Check if plate number column exists for multiple plates. If it does not, exit early.
-  if ("Plate_number" %in% colnames(plate_data)) {
-  } else {
-    stop("ERROR: Need to add a Plate_number column to the plate data for it to be read. Exiting...")
+  required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Replicate", "Sample_type", "Treatment", "Blanking_group", "Dilution_factor", "Standard_conc")
+  req_col_test <- unique(required_colnames %in% colnames(plate_data))
+  if (length(req_col_test) == 1 && req_col_test[1] == TRUE) {
+    stop("ERROR: Missing required table column (should include plate absorbance data and sample naming data; see README.md). Exiting...")
   }
 }
-
-## Import sample order data
-plate_order <- read.table(plate_order_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
-
-## Check if the sample naming and plate abosorbance data have the same number of plates, and throw a warning if not
-if (identical(unique(plate_order$Plate_number), unique(all_files_plate_data$Plate_number)) == FALSE) {
-  warning("WARNING: Number of plates in raw data files and sample naming sheet do not match. Unmatched plates may be deleted.")
-}
-
-## Join sample order data with absorbance data
-plate_data_merged <- dplyr::inner_join(all_files_plate_data, plate_order, by = c("Well","Plate_number"))
-
-# Export combined data
-merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
-write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
-
 
 ###############################################
 ### Part B: Process standards and unknowns #################
