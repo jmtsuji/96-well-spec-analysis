@@ -7,9 +7,9 @@
 ## User variables: #################################
 setwd("/Users/JTsuji/Documents/Research_General/PhD/19 other analyses/171110_xinda_NO2/") # your working directory where files are stored
 parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
-plate_data_filename <- c("01_raw/NO2_H2_both_depth_30C.txt") # Add in a vector if using multiple filenames
+plate_data_filename <- c("03_test_with_script/NO2_H2_both_depth_30C.txt", "03_test_with_script/NO2_H2_both_depth_30C_2.txt") # Add in a vector if using multiple filenames
                         # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
-sample_order_filename <- "01_raw/NO2_sample_naming_test2.txt" # Not needed if parse_raw_plate_data == FALSE
+sample_order_filename <- "03_test_with_script/NO2_sample_naming_test.txt" # Not needed if parse_raw_plate_data == FALSE
 print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
 print_processed_data <- TRUE # print data tables?
 force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
@@ -134,6 +134,13 @@ add_sample_naming <- function(all_plate_data, order_filename) {
   ## Import sample order data
   plate_order <- read.table(order_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   
+  # Check if required columns exist. If they do not, exit early.
+  required_colnames <- c("Plate_number", "Well", "Sample_name", "Replicate", "Sample_type", "Treatment", "Blanking_group", "Dilution_factor", "Standard_conc")
+  req_col_test <- unique(required_colnames %in% colnames(plate_order))
+  if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
+    stop("ERROR: Missing required column in sample naming file (see README.md). Exiting...")
+  }
+  
   ## Check if the sample naming and plate abosorbance data have the same number of plates, and throw a warning if not
   if (identical(unique(plate_order$Plate_number), unique(all_plate_data$Plate_number)) == FALSE) {
     warning("Number of plates in raw data files and sample naming sheet do not match. NA values will be placed where there are unmatched plates and may cause unexpected behaviour.")
@@ -179,10 +186,10 @@ if (parse_raw_plate_data == TRUE) {
   # Read in pre-merged plate/sample data
   plate_data_merged <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   
-  # Check if plate number column exists for multiple plates. If it does not, exit early.
+  # Check if required columns exist. If they do not, exit early.
   required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Replicate", "Sample_type", "Treatment", "Blanking_group", "Dilution_factor", "Standard_conc")
   req_col_test <- unique(required_colnames %in% colnames(plate_data_merged))
-  if (length(req_col_test) == 1 && req_col_test[1] == TRUE) {
+  if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
     stop("ERROR: Missing required table column (should include plate absorbance data and sample naming data; see README.md). Exiting...")
   }
 }
@@ -509,14 +516,14 @@ if (print_plots == TRUE) {
 # Remove irrelevant information
 cols_to_remove <- c("Plate_number", "Well", "Absorbance", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
 cols_nums_to_remove <- match(cols_to_remove, colnames(plate_data_merged))
-extra_sample_info <- plate_data_merged[,-(cols_nums_to_remove)]
+extra_sample_info <- unique(plate_data_merged[,-(cols_nums_to_remove)])
 merging_cols <- c("Sample_name", "Replicate", "Treatment") # to use with left_join later
 
 # Summarize the unknowns (samples) data and re-order for clarity
 plate_data_unknowns <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["unk_summ"]]}))
 plate_data_unknowns <- plate_data_unknowns[,c(5,3,6,2,4,1,7,8,11,12,13)]
 # Join in other sample info provided by the user
-plate_data_unknowns <- dplyr::left_join(plate_data_unknowns, extra_sample_info, by = merging_cols)
+plate_data_unknowns <- dplyr::inner_join(plate_data_unknowns, extra_sample_info, by = merging_cols)
 
 # Summarize standards and re-order for clarity
 plate_data_standards <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Standards_blanked"]]}))
@@ -533,7 +540,7 @@ plate_data_trendlines <- plate_data_trendlines[,c(4,2,1,3)]
 # Write summary table if desired
 if (print_processed_data == TRUE) {
   # Modify input file name as the output name for the table
-  table_filenames_prefix <- substr(plate_data_filename, 1, nchar(plate_data_filename)-4)
+  table_filenames_prefix <- output_filenames_prefix # from Part A
   
   table_sheetnames <- c("Unknowns", "Standards", "Blanks", "Trendlines")
   tables_to_write <- list(plate_data_unknowns, plate_data_standards, plate_data_blanks, plate_data_trendlines)
