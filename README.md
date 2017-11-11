@@ -3,7 +3,7 @@ Scripts for quickly processing 96 well plate data from the Neufeld lab spec.
 
 Copyright Jackson M. Tsuji, 2017
 
-__**NOTE: this script is in development and should not be used for important analyses without consulting the script author (Jackson M. Tsuji).__
+__**NOTE: this script is in development and should not be used for important analyses without consulting the script author.__
 
 # Dependencies (R packages)
 * [`plyr`](https://cran.r-project.org/web/packages/plyr/index.html)
