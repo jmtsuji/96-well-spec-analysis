@@ -1,0 +1,385 @@
+"Plate_number"	"Well"	"Absorbance"	"Sample_name"	"Replicate"	"Sample_type"	"Treatment"	"Blanking_group"	"Dilution_factor"	"Standard_conc"
+1	"A1"	0.0271	"Blank"	NA	"Blank"	"NO2"	"Water"	1	NA
+1	"A2"	0.0246	"Blank"	NA	"Blank"	"NO2"	"Water"	1	NA
+1	"A3"	0.357	"U1"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"A4"	0.3622	"U1"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"A5"	0.2556	"U4"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"A6"	0.2544	"U4"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"A7"	0.0306	"U7"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"A8"	0.0282	"U7"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"A9"	0.2548	"U10"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"A10"	0.2544	"U10"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"A11"	0.2133	"U12"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"A12"	0.2157	"U12"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"B1"	0.0703	"Std 1"	NA	"Standard"	"NO2"	"Water"	1	7.8125
+1	"B2"	0.068	"Std 1"	NA	"Standard"	"NO2"	"Water"	1	7.8125
+1	"B3"	0.0293	"U1"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"B4"	0.0295	"U1"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"B5"	0.1896	"U5"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"B6"	0.1876	"U5"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"B7"	0.0302	"U7"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"B8"	0.0306	"U7"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"B9"	0.1834	"U10"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"B10"	0.1861	"U10"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"B11"	0.2148	"U13"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"B12"	0.2142	"U13"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"C1"	0.1048	"Std 2"	NA	"Standard"	"NO2"	"Water"	1	15.625
+1	"C2"	0.1054	"Std 2"	NA	"Standard"	"NO2"	"Water"	1	15.625
+1	"C3"	0.0287	"U1"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"C4"	0.0328	"U1"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"C5"	0.1056	"U5"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"C6"	0.1007	"U5"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"C7"	0.0321	"U8"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"C8"	0.0289	"U8"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"C9"	0.1044	"U10"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"C10"	0.1015	"U10"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"C11"	0.2292	"U13"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"C12"	0.2286	"U13"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"D1"	0.144	"Std 3"	NA	"Standard"	"NO2"	"Water"	1	31.25
+1	"D2"	0.1405	"Std 3"	NA	"Standard"	"NO2"	"Water"	1	31.25
+1	"D3"	0.1381	"U2"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"D4"	0.1378	"U2"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"D5"	0.118	"U5"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"D6"	0.0945	"U5"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"D7"	0.2155	"U8"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"D8"	0.2305	"U8"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"D9"	0.0959	"U11"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"D10"	0.0953	"U11"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"D11"	0.2295	"U13"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"D12"	0.2294	"U13"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"E1"	0.1903	"Std 4"	NA	"Standard"	"NO2"	"Water"	1	62.5
+1	"E2"	0.1781	"Std 4"	NA	"Standard"	"NO2"	"Water"	1	62.5
+1	"E3"	0.137	"U2"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"E4"	0.136	"U2"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"E5"	0.1093	"U6"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"E6"	0.1086	"U6"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"E7"	0.1641	"U8"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"E8"	0.1567	"U8"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"E9"	0.1095	"U11"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"E10"	0.1058	"U11"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"E11"	0.1865	""	NA	""	""	""	NA	NA
+1	"E12"	0.1706	""	NA	""	""	""	NA	NA
+1	"F1"	0.2586	"Std 5"	NA	"Standard"	"NO2"	"Water"	1	125
+1	"F2"	0.2486	"Std 5"	NA	"Standard"	"NO2"	"Water"	1	125
+1	"F3"	0.1177	"U2"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"F4"	0.1153	"U2"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"F5"	0.115	"U6"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"F6"	0.112	"U6"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"F7"	0.4736	"U9"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"F8"	0.4923	"U9"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"F9"	0.1212	"U11"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"F10"	0.1167	"U11"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"F11"	0.1682	""	NA	""	""	""	NA	NA
+1	"F12"	0.1674	""	NA	""	""	""	NA	NA
+1	"G1"	0.4233	"Std 6"	NA	"Standard"	"NO2"	"Water"	1	250
+1	"G2"	0.3955	"Std 6"	NA	"Standard"	"NO2"	"Water"	1	250
+1	"G3"	0.3239	"U4"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"G4"	0.3248	"U4"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"G5"	0.1145	"U6"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"G6"	0.116	"U6"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"G7"	0.3606	"U9"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"G8"	0.372	"U9"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"G9"	0.1145	"U12"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"G10"	0.118	"U12"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"G11"	0.1187	""	NA	""	""	""	NA	NA
+1	"G12"	0.124	""	NA	""	""	""	NA	NA
+1	"H1"	0.5523	"Std 7"	NA	"Standard"	"NO2"	"Water"	1	500
+1	"H2"	0.5358	"Std 7"	NA	"Standard"	"NO2"	"Water"	1	500
+1	"H3"	0.2477	"U4"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"H4"	0.2452	"U4"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"H5"	0.1303	"U7"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"H6"	0.1291	"U7"	1	"Unknown"	"NO2"	"Water"	1	NA
+1	"H7"	0.2443	"U9"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"H8"	0.2448	"U9"	3	"Unknown"	"NO2"	"Water"	1	NA
+1	"H9"	0.1302	"U12"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"H10"	0.1257	"U12"	2	"Unknown"	"NO2"	"Water"	1	NA
+1	"H11"	0.1062	""	NA	""	""	""	NA	NA
+1	"H12"	0.1088	""	NA	""	""	""	NA	NA
+2	"A1"	0.0292	"Blank"	NA	"Blank"	"NO2"	"Water"	1	NA
+2	"A2"	0.0289	"Blank"	NA	"Blank"	"NO2"	"Water"	1	NA
+2	"A3"	0.3204	"U14"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"A4"	0.3302	"U14"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"A5"	0.258	"U16"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"A6"	0.2574	"U16"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"A7"	0.0342	"U19"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"A8"	0.0346	"U19"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"A9"	0.2613	"U22"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"A10"	0.2593	"U22"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"A11"	0.0396	"U24"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"A12"	0.0382	"U24"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"B1"	0.0731	"Std 1"	NA	"Standard"	"NO2"	"Water"	1	7.8125
+2	"B2"	0.0751	"Std 1"	NA	"Standard"	"NO2"	"Water"	1	7.8125
+2	"B3"	0.0372	"U14"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"B4"	0.0362	"U14"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"B5"	0.207	"U17"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"B6"	0.2061	"U17"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"B7"	0.0349	"U19"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"B8"	0.0365	"U19"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"B9"	0.2015	"U22"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"B10"	0.2013	"U22"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"B11"	0.0357	"U25"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"B12"	0.036	"U25"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"C1"	0.1049	"Std 2"	NA	"Standard"	"NO2"	"Water"	1	15.625
+2	"C2"	0.1073	"Std 2"	NA	"Standard"	"NO2"	"Water"	1	15.625
+2	"C3"	0.0348	"U14"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"C4"	0.0356	"U14"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"C5"	0.1055	"U17"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"C6"	0.1036	"U17"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"C7"	0.037	"U20"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"C8"	0.0382	"U20"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"C9"	0.1026	"U22"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"C10"	0.1093	"U22"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"C11"	0.0378	"U25"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"C12"	0.0388	"U25"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"D1"	0.1391	"Std 3"	NA	"Standard"	"NO2"	"Water"	1	31.25
+2	"D2"	0.1463	"Std 3"	NA	"Standard"	"NO2"	"Water"	1	31.25
+2	"D3"	0.2174	"U15"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"D4"	0.2204	"U15"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"D5"	0.1062	"U17"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"D6"	0.1004	"U17"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"D7"	0.3316	"U20"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"D8"	0.326	"U20"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"D9"	0.1037	"U23"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"D10"	0.1031	"U23"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"D11"	0.0346	"U25"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"D12"	0.0353	"U25"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"E1"	0.1823	"Std 4"	NA	"Standard"	"NO2"	"Water"	1	62.5
+2	"E2"	0.1816	"Std 4"	NA	"Standard"	"NO2"	"Water"	1	62.5
+2	"E3"	0.1962	"U15"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"E4"	0.1963	"U15"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"E5"	0.1138	"U18"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"E6"	0.1105	"U18"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"E7"	0.2347	"U20"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"E8"	0.2266	"U20"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"E9"	0.1122	"U23"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"E10"	0.1085	"U23"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"E11"	0.0356	""	NA	""	""	""	NA	NA
+2	"E12"	0.0356	""	NA	""	""	""	NA	NA
+2	"F1"	0.2436	"Std 5"	NA	"Standard"	"NO2"	"Water"	1	125
+2	"F2"	0.2451	"Std 5"	NA	"Standard"	"NO2"	"Water"	1	125
+2	"F3"	0.1523	"U15"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"F4"	0.1544	"U15"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"F5"	0.1163	"U18"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"F6"	0.117	"U18"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"F7"	0.7164	"U21"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"F8"	0.6885	"U21"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"F9"	0.119	"U23"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"F10"	0.1202	"U23"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"F11"	0.0325	""	NA	""	""	""	NA	NA
+2	"F12"	0.0337	""	NA	""	""	""	NA	NA
+2	"G1"	0.3862	"Std 6"	NA	"Standard"	"NO2"	"Water"	1	250
+2	"G2"	0.3899	"Std 6"	NA	"Standard"	"NO2"	"Water"	1	250
+2	"G3"	0.0365	"U16"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"G4"	0.0414	"U16"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"G5"	0.1127	"U18"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"G6"	0.122	"U18"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"G7"	0.0418	"U21"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"G8"	0.0403	"U21"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"G9"	0.1192	"U24"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"G10"	0.1167	"U24"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"G11"	0.0327	""	NA	""	""	""	NA	NA
+2	"G12"	0.0324	""	NA	""	""	""	NA	NA
+2	"H1"	0.5159	"Std 7"	NA	"Standard"	"NO2"	"Water"	1	500
+2	"H2"	0.5217	"Std 7"	NA	"Standard"	"NO2"	"Water"	1	500
+2	"H3"	0.2626	"U16"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"H4"	0.2624	"U16"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"H5"	0.1217	"U19"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"H6"	0.1242	"U19"	1	"Unknown"	"NO2"	"Water"	1	NA
+2	"H7"	0.2821	"U21"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"H8"	0.2909	"U21"	3	"Unknown"	"NO2"	"Water"	1	NA
+2	"H9"	0.1301	"U24"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"H10"	0.124	"U24"	2	"Unknown"	"NO2"	"Water"	1	NA
+2	"H11"	0.0322	""	NA	""	""	""	NA	NA
+2	"H12"	0.0319	""	NA	""	""	""	NA	NA
+3	"A1"	0.0247	"Blank"	NA	"Blank"	"NO2"	"Water"	1	NA
+3	"A2"	0.0262	"Blank"	NA	"Blank"	"NO2"	"Water"	1	NA
+3	"A3"	0.363	"P1"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"A4"	0.371	"P1"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"A5"	0.1302	"P4"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"A6"	0.1302	"P4"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"A7"	0.0298	"P7"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"A8"	0.0295	"P7"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"A9"	0.1485	"P10"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"A10"	0.147	"P10"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"A11"	0.1971	"P12"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"A12"	0.1983	"P12"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"B1"	0.0679	"Std 1"	NA	"Standard"	"NO2"	"Water"	1	7.8125
+3	"B2"	0.067	"Std 1"	NA	"Standard"	"NO2"	"Water"	1	7.8125
+3	"B3"	0.0295	"P1"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"B4"	0.0304	"P1"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"B5"	0.1209	"P5"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"B6"	0.1234	"P5"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"B7"	0.0303	"P7"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"B8"	0.0322	"P7"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"B9"	0.1453	"P10"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"B10"	0.1446	"P10"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"B11"	0.1876	"P13"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"B12"	0.1874	"P13"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"C1"	0.1034	"Std 2"	NA	"Standard"	"NO2"	"Water"	1	15.625
+3	"C2"	0.1048	"Std 2"	NA	"Standard"	"NO2"	"Water"	1	15.625
+3	"C3"	0.0289	"P1"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"C4"	0.0288	"P1"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"C5"	0.0447	"P5"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"C6"	0.046	"P5"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"C7"	0.0334	"P8"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"C8"	0.0308	"P8"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"C9"	0.1135	"P10"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"C10"	0.1184	"P10"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"C11"	0.2076	"P13"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"C12"	0.198	"P13"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"D1"	0.1424	"Std 3"	NA	"Standard"	"NO2"	"Water"	1	31.25
+3	"D2"	0.1405	"Std 3"	NA	"Standard"	"NO2"	"Water"	1	31.25
+3	"D3"	0.058	"P2"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"D4"	0.0573	"P2"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"D5"	0.1364	"P5"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"D6"	0.138	"P5"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"D7"	0.0915	"P8"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"D8"	0.0961	"P8"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"D9"	0.1499	"P11"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"D10"	0.151	"P11"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"D11"	0.1911	"P13"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"D12"	0.1909	"P13"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"E1"	0.1771	"Std 4"	NA	"Standard"	"NO2"	"Water"	1	62.5
+3	"E2"	0.1819	"Std 4"	NA	"Standard"	"NO2"	"Water"	1	62.5
+3	"E3"	0.0603	"P2"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"E4"	0.0978	"P2"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"E5"	0.135	"P6"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"E6"	0.1322	"P6"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"E7"	0.0947	"P8"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"E8"	0.0925	"P8"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"E9"	0.1501	"P11"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"E10"	0.1517	"P11"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"E11"	0.1786	""	NA	""	""	""	NA	NA
+3	"E12"	0.1827	""	NA	""	""	""	NA	NA
+3	"F1"	0.2509	"Std 5"	NA	"Standard"	"NO2"	"Water"	1	125
+3	"F2"	0.2511	"Std 5"	NA	"Standard"	"NO2"	"Water"	1	125
+3	"F3"	0.317	"P2"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"F4"	0.321	"P2"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"F5"	0.0688	"P6"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"F6"	0.0718	"P6"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"F7"	0.6881	"P9"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"F8"	0.6875	"P9"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"F9"	0.2508	"P11"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"F10"	0.2609	"P11"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"F11"	0.3449	""	NA	""	""	""	NA	NA
+3	"F12"	0.3491	""	NA	""	""	""	NA	NA
+3	"G1"	0.3993	"Std 6"	NA	"Standard"	"NO2"	"Water"	1	250
+3	"G2"	0.4028	"Std 6"	NA	"Standard"	"NO2"	"Water"	1	250
+3	"G3"	0.112	"P4"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"G4"	0.1148	"P4"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"G5"	0.1737	"P6"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"G6"	0.172	"P6"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"G7"	0.114	"P9"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"G8"	0.1123	"P9"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"G9"	0.194	"P12"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"G10"	0.1867	"P12"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"G11"	0.0309	""	NA	""	""	""	NA	NA
+3	"G12"	0.0304	""	NA	""	""	""	NA	NA
+3	"H1"	0.5313	"Std 7"	NA	"Standard"	"NO2"	"Water"	1	500
+3	"H2"	0.5083	"Std 7"	NA	"Standard"	"NO2"	"Water"	1	500
+3	"H3"	0.116	"P4"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"H4"	0.1176	"P4"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"H5"	0.1955	"P7"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"H6"	0.1946	"P7"	1	"Unknown"	"NO2"	"Water"	1	NA
+3	"H7"	0.1169	"P9"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"H8"	0.1163	"P9"	3	"Unknown"	"NO2"	"Water"	1	NA
+3	"H9"	0.1961	"P12"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"H10"	0.1983	"P12"	2	"Unknown"	"NO2"	"Water"	1	NA
+3	"H11"	0.031	""	NA	""	""	""	NA	NA
+3	"H12"	0.0317	""	NA	""	""	""	NA	NA
+4	"A1"	0.0255	"Blank"	NA	"Blank"	"NO2"	"Water"	1	NA
+4	"A2"	0.0272	"Blank"	NA	"Blank"	"NO2"	"Water"	1	NA
+4	"A3"	0.3469	"P14"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"A4"	0.3495	"P14"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"A5"	0.0926	"P16"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"A6"	0.0927	"P16"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"A7"	0.0326	"P19"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"A8"	0.0295	"P19"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"A9"	0.1305	"P22"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"A10"	0.132	"P22"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"A11"	0.1977	"P24"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"A12"	0.1947	"P24"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"B1"	0.0663	"Std 1"	NA	"Standard"	"NO2"	"Water"	1	7.8125
+4	"B2"	0.0685	"Std 1"	NA	"Standard"	"NO2"	"Water"	1	7.8125
+4	"B3"	0.03	"P14"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"B4"	0.0301	"P14"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"B5"	0.0526	"P17"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"B6"	0.0544	"P17"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"B7"	0.0315	"P19"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"B8"	0.0306	"P19"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"B9"	0.1237	"P22"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"B10"	0.1274	"P22"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"B11"	0.2038	"P25"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"B12"	0.1941	"P25"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"C1"	0.1044	"Std 2"	NA	"Standard"	"NO2"	"Water"	1	15.625
+4	"C2"	0.1062	"Std 2"	NA	"Standard"	"NO2"	"Water"	1	15.625
+4	"C3"	0.0298	"P14"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"C4"	0.0306	"P14"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"C5"	0.061	"P17"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"C6"	0.0607	"P17"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"C7"	0.0332	"P20"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"C8"	0.0303	"P20"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"C9"	0.2912	"P22"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"C10"	0.2662	"P22"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"C11"	0.1998	"P25"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"C12"	0.218	"P25"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"D1"	0.1415	"Std 3"	NA	"Standard"	"NO2"	"Water"	1	31.25
+4	"D2"	0.1407	"Std 3"	NA	"Standard"	"NO2"	"Water"	1	31.25
+4	"D3"	0.0508	"P15"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"D4"	0.0586	"P15"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"D5"	0.1133	"P17"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"D6"	0.1167	"P17"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"D7"	0.0923	"P20"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"D8"	0.0914	"P20"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"D9"	0.1436	"P23"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"D10"	0.147	"P23"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"D11"	0.2016	"P25"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"D12"	0.2082	"P25"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"E1"	0.1762	"Std 4"	NA	"Standard"	"NO2"	"Water"	1	62.5
+4	"E2"	0.1785	"Std 4"	NA	"Standard"	"NO2"	"Water"	1	62.5
+4	"E3"	0.0518	"P15"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"E4"	0.0524	"P15"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"E5"	0.1015	"P18"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"E6"	0.1037	"P18"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"E7"	0.0958	"P20"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"E8"	0.094	"P20"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"E9"	0.1414	"P23"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"E10"	0.1398	"P23"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"E11"	0.1967	""	NA	""	""	""	NA	NA
+4	"E12"	0.1942	""	NA	""	""	""	NA	NA
+4	"F1"	0.2493	"Std 5"	NA	"Standard"	"NO2"	"Water"	1	125
+4	"F2"	0.2424	"Std 5"	NA	"Standard"	"NO2"	"Water"	1	125
+4	"F3"	0.3298	"P15"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"F4"	0.3243	"P15"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"F5"	0.0569	"P18"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"F6"	0.0548	"P18"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"F7"	0.7061	"P21"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"F8"	0.6662	"P21"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"F9"	0.3341	"P23"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"F10"	0.3474	"P23"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"F11"	0.3638	""	NA	""	""	""	NA	NA
+4	"F12"	0.3846	""	NA	""	""	""	NA	NA
+4	"G1"	0.3878	"Std 6"	NA	"Standard"	"NO2"	"Water"	1	250
+4	"G2"	0.3996	"Std 6"	NA	"Standard"	"NO2"	"Water"	1	250
+4	"G3"	0.1108	"P16"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"G4"	0.1109	"P16"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"G5"	0.1439	"P18"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"G6"	0.1338	"P18"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"G7"	0.1144	"P21"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"G8"	0.1137	"P21"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"G9"	0.1888	"P24"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"G10"	0.1794	"P24"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"G11"	0.0795	""	NA	""	""	""	NA	NA
+4	"G12"	0.0831	""	NA	""	""	""	NA	NA
+4	"H1"	0.5338	"Std 7"	NA	"Standard"	"NO2"	"Water"	1	500
+4	"H2"	0.5414	"Std 7"	NA	"Standard"	"NO2"	"Water"	1	500
+4	"H3"	0.1156	"P16"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"H4"	0.1103	"P16"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"H5"	0.1809	"P19"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"H6"	0.1872	"P19"	1	"Unknown"	"NO2"	"Water"	1	NA
+4	"H7"	0.1109	"P21"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"H8"	0.1123	"P21"	3	"Unknown"	"NO2"	"Water"	1	NA
+4	"H9"	0.2083	"P24"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"H10"	0.1987	"P24"	2	"Unknown"	"NO2"	"Water"	1	NA
+4	"H11"	0.0815	""	NA	""	""	""	NA	NA
+4	"H12"	0.0872	""	NA	""	""	""	NA	NA
