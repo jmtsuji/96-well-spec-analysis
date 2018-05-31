@@ -12,8 +12,6 @@ parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Wil
 plate_data_filename <- c("example_input/example_raw_plate_data_1.txt", "example_input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
                         # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
 sample_metadata_filename <- "example_input/example_sample_metadata.tsv" # Not needed if parse_raw_plate_data == FALSE
-print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
-print_processed_data <- TRUE # print data tables?
 force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
 #####################################################
 
@@ -25,8 +23,6 @@ force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recomm
 # plate_data_filename <- c("example_input/example_raw_plate_data_1.txt", "example_input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
 # # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
 # sample_metadata_filename <- "example_input/example_sample_metadata.tsv" # Not needed if parse_raw_plate_data == FALSE
-# print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
-# print_processed_data <- TRUE # print data tables?
 # force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
 # #####################################################
 
@@ -529,17 +525,15 @@ write_excel_table <- function(output_filenames_prefix, summarized_data_list) {
 
 # Description: writes standard curve plots to file
 # TODO - define entire output filename as input to the function
-print_std_curve_plots <- function(unknowns_data, plate_data_filename, print_plots, std_type, file_ending) {
-  # TODO - make this non-optional
+print_std_curve_plots <- function(unknowns_data, plate_data_filename, std_type, file_ending) {
+
   std_plots_list <- lapply(names(unknowns_data), function(x) {unknowns_data[[x]][[std_type]]})
   std_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), file_ending, sep = "")
-  if (print_plots == TRUE) {
-    pdf(file = std_plot_name)
-    print(std_plots_list) # See https://stackoverflow.com/a/29834646, accessed 170815
-    dev.off()
-  } else {
-    print(std_plots_list) # prints to screen if a PDF printout is not wanted
-  }
+
+  pdf(file = std_plot_name)
+  print(std_plots_list) # See https://stackoverflow.com/a/29834646, accessed 170815
+  dev.off()
+
 }
 
 main <- function() {
@@ -553,12 +547,9 @@ main <- function() {
     plate_data_merged <- parse_raw_data(plate_data_filename, sample_metadata_filename)
     cat("Successfully read in plate data and sample naming data.")
     
-    # Export combined data if desired
-    # TODO - make non-optional
-    if (print_processed_data == TRUE) {
-      merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
-      write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
-    }
+    # Export combined data
+    merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
+    write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
     
   } else {
     # Read in pre-merged plate/sample data
@@ -589,38 +580,31 @@ main <- function() {
                           function(x) {convert_to_concentration(plate_data_sep[[x]], plate_data_stds[[x]])})
   names(unknowns_data) <- names(plate_data_sep)
   
-  # Optionally generate and print plate diagrams
-  # TODO - make this non-optional
+  # Generate and print plate diagrams
   plate_diagrams <- lapply(names(plate_data_sep), function(x) {visual_check(plate_data_sep[[x]])})
   plate_digrams_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_plate_diagrams.pdf", sep = "")
-  if (print_plots == TRUE) {
-    pdf(file = plate_digrams_name, width = 10, height = 6)
-    print(plate_diagrams) # See https://stackoverflow.com/a/29834646, accessed 170815
-    dev.off()
-  }
+
+  pdf(file = plate_digrams_name, width = 10, height = 6)
+  print(plate_diagrams) # See https://stackoverflow.com/a/29834646, accessed 170815
+  dev.off()
   
   
   ##### Summarize output
   summarized_data_list <- summarize_processed_data(plate_data_merged, unknowns_data)
   
-  # Write summary table if desired
-  # TODO - make this non-optional
-  if (print_processed_data == TRUE) {
+  # Write summary table
+  write_excel_table(output_filenames_prefix, summarized_data_list)
     
-    write_excel_table(output_filenames_prefix, summarized_data_list)
-    
-    # Also export unknowns as TSV
-    table_filename_unknowns <- paste(output_filenames_prefix, "_unknowns.tsv", sep = "")
-    write.table(plate_data_unknowns, file = table_filename_unknowns, sep = "\t", col.names = TRUE, row.names = FALSE)
-    
-  }
+  # Also export unknowns as TSV
+  table_filename_unknowns <- paste(output_filenames_prefix, "_unknowns.tsv", sep = "")
+  write.table(plate_data_unknowns, file = table_filename_unknowns, sep = "\t", col.names = TRUE, row.names = FALSE)
   
   # Make multi-panel standard curve plots, if desired
   # TODO - define entire output filename as input to the function
-  print_std_curve_plots(unknowns_data, plate_data_filename, print_plots, 
+  print_std_curve_plots(unknowns_data, plate_data_filename, 
                         std_type = "std_plot", file_ending = "_std_curves.pdf")
   
-  print_std_curve_plots(unknowns_data, plate_data_filename, print_plots, 
+  print_std_curve_plots(unknowns_data, plate_data_filename, 
                         std_type = "std_plot_with_unknowns", file_ending = "_std_curves_with_samples.pdf")
   
   cat("96_well_spec_analysis.R: finished.")
