@@ -11,7 +11,7 @@ setwd("/Users/JTsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysi
 parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
 plate_data_filename <- c("example_input/example_raw_plate_data_1.txt", "example_input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
                         # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
-sample_order_filename <- "example_input/example_sample_naming.tsv" # Not needed if parse_raw_plate_data == FALSE
+sample_metadata_filename <- "example_input/example_sample_metadata.tsv" # Not needed if parse_raw_plate_data == FALSE
 print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
 print_processed_data <- TRUE # print data tables?
 force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
@@ -24,7 +24,7 @@ force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recomm
 # parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
 # plate_data_filename <- c("example_input/example_raw_plate_data_1.txt", "example_input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
 # # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
-# sample_order_filename <- "example_input/example_sample_naming.tsv" # Not needed if parse_raw_plate_data == FALSE
+# sample_metadata_filename <- "example_input/example_sample_metadata.tsv" # Not needed if parse_raw_plate_data == FALSE
 # print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
 # print_processed_data <- TRUE # print data tables?
 # force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
@@ -42,7 +42,7 @@ library(glue)
 #####################################################
 
 # Description: parses one plate from an input file
-get_individual_plate <- function(unparsed_plate_data, plate_ending_line, plate_num) {
+parse_individual_plate <- function(unparsed_plate_data, plate_ending_line, plate_num) {
   # test data
   # unparsed_plate_data <- unparsed_data
   # plate_ending_line <- plate_endings[1]
@@ -89,7 +89,7 @@ parse_input_file <- function(file_name) {
   print(paste("File ", file_name, ": found ",number_of_plates," plates' worth of plate data.", sep = ""))
   
   # Call function to get the data for each plate
-  plate_data <- lapply(1:number_of_plates, function(x) {get_individual_plate(unparsed_data, plate_endings[x], x)})
+  plate_data <- lapply(1:number_of_plates, function(x) {parse_individual_plate(unparsed_data, plate_endings[x], x)})
   
   # Combine into a single data frame
   plate_data <- dplyr::bind_rows(plate_data)
@@ -98,7 +98,7 @@ parse_input_file <- function(file_name) {
 }
 
 # Description: merges all absorbance data into a single table (requires plate numbering adjustments)
-revalue_plate_numbers <- function(all_plates_list) {
+merge_input_files_data <- function(all_plates_list) {
   # all_plates_list <- all_files_plate_data
   
   # Determine total number of plates and renumber plates to match
@@ -138,9 +138,9 @@ revalue_plate_numbers <- function(all_plates_list) {
 }
 
 # Description: adds sample metadata to the parsed absorbance data
-add_sample_naming <- function(all_plate_data, order_filename) {
+add_sample_metadata <- function(all_plate_data, metadata_filename) {
   ## Import sample order data
-  plate_order <- read.table(order_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+  plate_order <- read.table(metadata_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   
   # Check if required columns exist. If they do not, exit early.
   required_colnames <- c("Plate_number", "Well", "Sample_name", "Replicate", "Sample_type", "Treatment", "Blanking_group", "Dilution_factor", "Standard_conc")
@@ -161,7 +161,7 @@ add_sample_naming <- function(all_plate_data, order_filename) {
 }
 
 # Description: fully parses and integrates raw plate absorbance data and metadata
-parse_raw_data <- function(plate_data_filename, sample_order_filename) {
+parse_raw_data <- function(plate_data_filename, sample_metadata_filename) {
   
   # Determine number of files provided
   number_of_files <- length(plate_data_filename)
@@ -177,10 +177,10 @@ parse_raw_data <- function(plate_data_filename, sample_order_filename) {
   all_files_plate_data <- lapply(plate_data_filename, function(x) { parse_input_file(x) })
   
   # Combine into a single table
-  all_files_plate_data <- revalue_plate_numbers(all_files_plate_data)
+  all_files_plate_data <- merge_input_files_data(all_files_plate_data)
   
   # Add sample naming data
-  plate_data_merged <- add_sample_naming(all_files_plate_data, sample_order_filename)
+  plate_data_merged <- add_sample_metadata(all_files_plate_data, sample_metadata_filename)
   
   return(plate_data_merged)
   
@@ -518,10 +518,11 @@ main <- function() {
   
   if (parse_raw_plate_data == TRUE) {
     print("Parsing plate data...")
-    plate_data_merged <- parse_raw_data(plate_data_filename, sample_order_filename)
+    plate_data_merged <- parse_raw_data(plate_data_filename, sample_metadata_filename)
     print("Successfully read in plate data and sample naming data.")
     
     # Export combined data if desired
+    # TODO - make non-optional
     if (print_processed_data == TRUE) {
       merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
       write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
@@ -542,15 +543,18 @@ main <- function() {
   
   ##### Process standards and unknowns
   ### First, split the raw data into multiple sub-tables by date of sampling
-  plate_data_sep <- lapply(unique(plate_data_merged$Plate_number), function(x) {filter(plate_data_merged, Plate_number == x)})
+  plate_data_sep <- lapply(unique(plate_data_merged$Plate_number), 
+                           function(x) {filter(plate_data_merged, Plate_number == x)})
   names(plate_data_sep) <- unique(plate_data_merged$Plate_number)
   
   # Generate standards for each Date
-  plate_data_stds <- lapply(names(plate_data_sep), function(x) {make_standard_curve(plate_data_sep[[x]])})
+  plate_data_stds <- lapply(names(plate_data_sep), 
+                            function(x) {make_standard_curve(plate_data_sep[[x]])})
   names(plate_data_stds) <- names(plate_data_sep)
   
   # Get concentrations and plot for each Date
-  unknowns_data <- lapply(names(plate_data_sep), function(x) {convert_to_concentration(plate_data_sep[[x]], plate_data_stds[[x]])})
+  unknowns_data <- lapply(names(plate_data_sep), 
+                          function(x) {convert_to_concentration(plate_data_sep[[x]], plate_data_stds[[x]])})
   names(unknowns_data) <- names(plate_data_sep)
   
   # Optionally generate and print plate diagrams
@@ -563,11 +567,12 @@ main <- function() {
     dev.off()
   }
   
-  ##### Summarize output
   
+  ##### Summarize output
   summarized_data_list <- summarize_processed_data(plate_data_merged, unknowns_data)
   
   # Write summary table if desired
+  # TODO - make this non-optional
   if (print_processed_data == TRUE) {
     # Modify input file name as the output name for the table
     # TODO - fix variable names here to match rest of script
