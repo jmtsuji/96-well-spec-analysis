@@ -80,16 +80,17 @@ function check_md5 {
 		
 		# Check if the MD5 files match. Will be 0 if matching and 1 if not matching
 		# TODO - find a cleaner way to write this code
-		local compare_status=$(cmp ${TEST_DIR}/${file}.md5 ${MD5_DIR}/${file}.md5 >/dev/null; echo $?)
+		local test_md5=$(cut -d ' ' -f 1 ${TEST_DIR}/${file}.md5)
+		local known_md5=$(cut -d ' ' -f 1 ${MD5_DIR}/${file}.md5)
 		
 		# Report to user
-		if [ ${compare_status} = 0 ]; then
+		if [ ${test_md5} = ${known_md5} ]; then
 			echo "${file}: MD5 check PASSED."
 			
 			# Clean up
 			rm ${TEST_DIR}/${file}.md5
 			
-		elif [ ${compare_status} = 1 ]; then
+		elif [ ${test_md5} != ${known_md5} ]; then
 			echo "${file}: MD5 check FAILED. Leaving behind ${TEST_DIR}/${file}.md5 for reference."
 			
 			# Change ${OVERALL_TEST_STATUS} to 1 if at least one test fails
