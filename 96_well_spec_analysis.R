@@ -3,9 +3,11 @@
 # Created Nov 10th, 2016
 # Description: Imports and processes data from the 96 well plate reader
 
+VERSION <- "v0.3" # to match git tag
+
 #####################################################
 ## User variables: #################################
-setwd("/Users/JTsuji/Documents/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
+setwd("/Users/JTsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
 parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
 plate_data_filename <- c("example_input/example_raw_plate_data_1.txt", "example_input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
                         # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
@@ -15,6 +17,18 @@ print_processed_data <- TRUE # print data tables?
 force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
 #####################################################
 
+
+# #####################################################
+# ## User variables FOR TESTING: #################################
+# setwd("/Users/JTsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
+# parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
+# plate_data_filename <- c("example_input/example_raw_plate_data_1.txt", "example_input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
+# # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
+# sample_order_filename <- "example_input/example_sample_naming.tsv" # Not needed if parse_raw_plate_data == FALSE
+# print_plots <- TRUE # print a PDF of the standard curves and final analysis? Otherwise, will print to screen.
+# print_processed_data <- TRUE # print data tables?
+# force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
+# #####################################################
 
 #####################################################
 ## Load required packages: ##########################
@@ -27,14 +41,7 @@ library(xlsx)
 library(glue)
 #####################################################
 
-
-#####################################################
-### Part A: Input data and clean up #################
-#####################################################
-# Get prefix name of input data file for naming output files
-output_filenames_prefix <- substr(plate_data_filename[1], 1, nchar(plate_data_filename[1])-4)
-
-# Funtion to pull one plate of data from an input file
+# Description: parses one plate from an input file
 get_individual_plate <- function(unparsed_plate_data, plate_ending_line, plate_num) {
   # test data
   # unparsed_plate_data <- unparsed_data
@@ -62,7 +69,7 @@ get_individual_plate <- function(unparsed_plate_data, plate_ending_line, plate_n
   return(plate_parsed)
 }
 
-# Function to read one input file (can contain multiple plates)
+# Description: loads one input file (can contain multiple plates)
 parse_input_file <- function(file_name) {
   # file_name <- plate_data_filename[1]
   
@@ -90,7 +97,7 @@ parse_input_file <- function(file_name) {
   return(plate_data)
 }
 
-# Function to correct for plate numbers between raw files and merge into a single table
+# Description: merges all absorbance data into a single table (requires plate numbering adjustments)
 revalue_plate_numbers <- function(all_plates_list) {
   # all_plates_list <- all_files_plate_data
   
@@ -130,7 +137,7 @@ revalue_plate_numbers <- function(all_plates_list) {
   return(all_plate_data)
 }
 
-# Function to add sample naming data to the parsed absorbance data
+# Description: adds sample metadata to the parsed absorbance data
 add_sample_naming <- function(all_plate_data, order_filename) {
   ## Import sample order data
   plate_order <- read.table(order_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
@@ -153,56 +160,7 @@ add_sample_naming <- function(all_plate_data, order_filename) {
   return(all_plate_data_merged)
 }
 
-if (parse_raw_plate_data == TRUE) {
-  print("Parsing plate data...")
-  
-  # Determine number of files provided
-  number_of_files <- length(plate_data_filename)
-  if (number_of_files == 1) {
-    print(paste("Loading data from ", number_of_files, " file...", sep = ""))
-  } else if (number_of_files > 1) {
-    print(paste("Loading data from ", number_of_files, " files in sequential order...", sep = ""))
-  } else {
-    stop("ERROR: no input files detected")
-  }
-  
-  # Parse each input file
-  all_files_plate_data <- lapply(plate_data_filename, function(x) { parse_input_file(x) })
-  
-  # Combine into a single table
-  all_files_plate_data <- revalue_plate_numbers(all_files_plate_data)
-  
-  # Add sample naming data
-  plate_data_merged <- add_sample_naming(all_files_plate_data, sample_order_filename)
-    
-  print("Successfully read in plate data and sample naming data.")
-  
-  # Export combined data if desired
-  if (print_processed_data == TRUE) {
-    merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
-    write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
-  }
-  
-} else {
-  # Read in pre-merged plate/sample data
-  plate_data_merged <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
-  
-  # Check if required columns exist. If they do not, exit early.
-  required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Replicate", "Sample_type", "Treatment", "Blanking_group", "Dilution_factor", "Standard_conc")
-  req_col_test <- unique(required_colnames %in% colnames(plate_data_merged))
-  if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
-    stop("ERROR: Missing required table column (should include plate absorbance data and sample naming data; see README.md). Exiting...")
-  }
-}
-
-###############################################
-### Part B: Process standards and unknowns #################
-###############################################
-
-### First, split the raw data into multiple sub-tables by date of sampling
-plate_data_sep <- lapply(unique(plate_data_merged$Plate_number), function(x) {filter(plate_data_merged, Plate_number == x)})
-names(plate_data_sep) <- unique(plate_data_merged$Plate_number)
-
+# Description: determines one standard curve for each plate
 # Assume one standard for whole plate with different blanking options
 make_standard_curve <- function(data_table) {
   # data_table <- plate_data_sep[[1]]
@@ -277,7 +235,7 @@ make_standard_curve <- function(data_table) {
   return(output_list)
 }
 
-# Function to adjust absorbances of unknowns based on blanks
+# Description: blanks the sample/standard absorbances to user-defined blanks
 # (need to refactor nested loop for clarity)
 blank_unknowns <- function(summarized_unknowns, summarized_blanks) {
   # # Test variables
@@ -333,7 +291,7 @@ blank_unknowns <- function(summarized_unknowns, summarized_blanks) {
   return(summarized_unknowns)
 }
 
-# Function to convert sample absorbances to concentrations for each Plate_number, re-blanking standards as needed
+# Description: converts sample absorbances to concentrations for each Plate_number, re-blanking standards as needed
 convert_to_concentration <- function(data_table, std_list) {
   # data_table <- plate_data_sep[[1]]
   # std_list <- plate_data_stds[[1]]
@@ -453,7 +411,7 @@ convert_to_concentration <- function(data_table, std_list) {
 
 }
 
-# Function to perform a visual check of the data by making a 96 well plate
+# Description: creates a 96 well plate-style figure of the parsed data for checking purposes
 visual_check <- function(data_table) {
   # data_table <- plate_data_sep[[2]]
   
@@ -492,97 +450,160 @@ visual_check <- function(data_table) {
   return(plate_diagram)
 }
 
-# Generate standards for each Date
-plate_data_stds <- lapply(names(plate_data_sep), function(x) {make_standard_curve(plate_data_sep[[x]])})
-names(plate_data_stds) <- names(plate_data_sep)
-
-# Get concentrations and plot for each Date
-unknowns_data <- lapply(names(plate_data_sep), function(x) {convert_to_concentration(plate_data_sep[[x]], plate_data_stds[[x]])})
-names(unknowns_data) <- names(plate_data_sep)
-
-# Optionally generate and print plate diagrams
-plate_diagrams <- lapply(names(plate_data_sep), function(x) {visual_check(plate_data_sep[[x]])})
-plate_digrams_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_plate_diagrams.pdf", sep = "")
-if (print_plots == TRUE) {
-  pdf(file = plate_digrams_name, width = 10, height = 6)
-  print(plate_diagrams) # See https://stackoverflow.com/a/29834646, accessed 170815
-  dev.off()
-}
-
-###############################################
-### Part C: Summarize output #################
-###############################################
-
-# Separate additional information provided by the user in the sample naming sheet to be integrated with output tables
-# Remove irrelevant information
-cols_to_remove <- c("Well", "Absorbance", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
-cols_nums_to_remove <- match(cols_to_remove, colnames(plate_data_merged))
-extra_sample_info <- unique(plate_data_merged[,-(cols_nums_to_remove)])
-merging_cols <- c("Plate_number", "Sample_name", "Replicate", "Treatment") # to use with join later
-
-# Summarize the unknowns (samples) data and re-order for clarity
-plate_data_unknowns <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["unk_summ"]]}))
-plate_data_unknowns <- plate_data_unknowns[,c(5,3,6,2,4,1,7,8,11,12,13)]
-# Join in other sample info provided by the user
-plate_data_unknowns <- dplyr::inner_join(plate_data_unknowns, extra_sample_info, by = merging_cols)
-
-# Summarize standards and re-order for clarity
-plate_data_standards <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Standards_blanked"]]}))
-plate_data_standards <- plate_data_standards[,c(5,3,4,2,1,6,7)]
-
-# Summarize blanks and re-order for clarity
-plate_data_blanks <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Blanks_all"]]}))
-plate_data_blanks <- plate_data_blanks[,c(4,1,2,5,6)]
-
-# Summarize trendline and re-order for clarity
-plate_data_trendlines <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Trendline"]]}))
-plate_data_trendlines <- plate_data_trendlines[,c(4,2,1,3)]
-
-# Write summary table if desired
-if (print_processed_data == TRUE) {
-  # Modify input file name as the output name for the table
-  table_filenames_prefix <- output_filenames_prefix # from Part A
+main <- function() {
+  #####################################################
+  ### Part A: Input data and clean up #################
+  #####################################################
+  # Get prefix name of input data file for naming output files
+  output_filenames_prefix <- substr(plate_data_filename[1], 1, nchar(plate_data_filename[1])-4)
   
-  table_sheetnames <- c("Unknowns", "Standards", "Blanks", "Trendlines")
-  tables_to_write <- list(plate_data_unknowns, plate_data_standards, plate_data_blanks, plate_data_trendlines)
   
-  # Save as Excel workbook with multiple sheets
-  xlsx_table_filename <- paste(table_filenames_prefix, "_calculations.xlsx", sep = "")
-  for (i in 1:length(tables_to_write)) {
-    if (i == 1) {
-      write.xlsx2(as.data.frame(tables_to_write[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=FALSE)
+  
+  if (parse_raw_plate_data == TRUE) {
+    print("Parsing plate data...")
+    
+    # Determine number of files provided
+    number_of_files <- length(plate_data_filename)
+    if (number_of_files == 1) {
+      print(paste("Loading data from ", number_of_files, " file...", sep = ""))
+    } else if (number_of_files > 1) {
+      print(paste("Loading data from ", number_of_files, " files in sequential order...", sep = ""))
     } else {
-      write.xlsx2(as.data.frame(tables_to_write[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=TRUE)
+      stop("ERROR: no input files detected")
+    }
+    
+    # Parse each input file
+    all_files_plate_data <- lapply(plate_data_filename, function(x) { parse_input_file(x) })
+    
+    # Combine into a single table
+    all_files_plate_data <- revalue_plate_numbers(all_files_plate_data)
+    
+    # Add sample naming data
+    plate_data_merged <- add_sample_naming(all_files_plate_data, sample_order_filename)
+    
+    print("Successfully read in plate data and sample naming data.")
+    
+    # Export combined data if desired
+    if (print_processed_data == TRUE) {
+      merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
+      write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
+    }
+    
+  } else {
+    # Read in pre-merged plate/sample data
+    plate_data_merged <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+    
+    # Check if required columns exist. If they do not, exit early.
+    required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Replicate", "Sample_type", "Treatment", "Blanking_group", "Dilution_factor", "Standard_conc")
+    req_col_test <- unique(required_colnames %in% colnames(plate_data_merged))
+    if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
+      stop("ERROR: Missing required table column (should include plate absorbance data and sample naming data; see README.md). Exiting...")
     }
   }
   
-  # Also export unknowns as TSV in case helpful to the user
-  table_filename_unknowns <- paste(table_filenames_prefix, "_unknowns.tsv", sep = "")
-  write.table(plate_data_unknowns, file = table_filename_unknowns, sep = "\t", col.names = TRUE, row.names = FALSE)
+  ###############################################
+  ### Part B: Process standards and unknowns #################
+  ###############################################
+  
+  ### First, split the raw data into multiple sub-tables by date of sampling
+  plate_data_sep <- lapply(unique(plate_data_merged$Plate_number), function(x) {filter(plate_data_merged, Plate_number == x)})
+  names(plate_data_sep) <- unique(plate_data_merged$Plate_number)
+  
+  # Generate standards for each Date
+  plate_data_stds <- lapply(names(plate_data_sep), function(x) {make_standard_curve(plate_data_sep[[x]])})
+  names(plate_data_stds) <- names(plate_data_sep)
+  
+  # Get concentrations and plot for each Date
+  unknowns_data <- lapply(names(plate_data_sep), function(x) {convert_to_concentration(plate_data_sep[[x]], plate_data_stds[[x]])})
+  names(unknowns_data) <- names(plate_data_sep)
+  
+  # Optionally generate and print plate diagrams
+  plate_diagrams <- lapply(names(plate_data_sep), function(x) {visual_check(plate_data_sep[[x]])})
+  plate_digrams_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_plate_diagrams.pdf", sep = "")
+  if (print_plots == TRUE) {
+    pdf(file = plate_digrams_name, width = 10, height = 6)
+    print(plate_diagrams) # See https://stackoverflow.com/a/29834646, accessed 170815
+    dev.off()
+  }
+  
+  
+  ###############################################
+  ### Part C: Summarize output #################
+  ###############################################
+  
+  # Separate additional information provided by the user in the sample naming sheet to be integrated with output tables
+  # Remove irrelevant information
+  cols_to_remove <- c("Well", "Absorbance", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
+  cols_nums_to_remove <- match(cols_to_remove, colnames(plate_data_merged))
+  extra_sample_info <- unique(plate_data_merged[,-(cols_nums_to_remove)])
+  merging_cols <- c("Plate_number", "Sample_name", "Replicate", "Treatment") # to use with join later
+  
+  # Summarize the unknowns (samples) data and re-order for clarity
+  plate_data_unknowns <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["unk_summ"]]}))
+  plate_data_unknowns <- plate_data_unknowns[,c(5,3,6,2,4,1,7,8,11,12,13)]
+  # Join in other sample info provided by the user
+  plate_data_unknowns <- dplyr::inner_join(plate_data_unknowns, extra_sample_info, by = merging_cols)
+  
+  # Summarize standards and re-order for clarity
+  plate_data_standards <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Standards_blanked"]]}))
+  plate_data_standards <- plate_data_standards[,c(5,3,4,2,1,6,7)]
+  
+  # Summarize blanks and re-order for clarity
+  plate_data_blanks <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Blanks_all"]]}))
+  plate_data_blanks <- plate_data_blanks[,c(4,1,2,5,6)]
+  
+  # Summarize trendline and re-order for clarity
+  plate_data_trendlines <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Trendline"]]}))
+  plate_data_trendlines <- plate_data_trendlines[,c(4,2,1,3)]
+  
+  # Write summary table if desired
+  if (print_processed_data == TRUE) {
+    # Modify input file name as the output name for the table
+    table_filenames_prefix <- output_filenames_prefix # from Part A
+    
+    table_sheetnames <- c("Unknowns", "Standards", "Blanks", "Trendlines")
+    tables_to_write <- list(plate_data_unknowns, plate_data_standards, plate_data_blanks, plate_data_trendlines)
+    
+    # Save as Excel workbook with multiple sheets
+    xlsx_table_filename <- paste(table_filenames_prefix, "_calculations.xlsx", sep = "")
+    for (i in 1:length(tables_to_write)) {
+      if (i == 1) {
+        write.xlsx2(as.data.frame(tables_to_write[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=FALSE)
+      } else {
+        write.xlsx2(as.data.frame(tables_to_write[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=TRUE)
+      }
+    }
+    
+    # Also export unknowns as TSV in case helpful to the user
+    table_filename_unknowns <- paste(table_filenames_prefix, "_unknowns.tsv", sep = "")
+    write.table(plate_data_unknowns, file = table_filename_unknowns, sep = "\t", col.names = TRUE, row.names = FALSE)
+    
+  }
+  
+  # Make multi-panel standard curve plots, if desired
+  std_plots_list <- lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["std_plot"]]})
+  std_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_std_curves.pdf", sep = "")
+  if (print_plots == TRUE) {
+    pdf(file = std_plot_name)
+    print(std_plots_list) # See https://stackoverflow.com/a/29834646, accessed 170815
+    dev.off()
+  } else {
+    print(std_plots_list) # prints to screen if a PDF printout is not wanted
+  }
+  
+  # Do again for the standard curves with samples overlaid
+  unk_plots_list <- lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["std_plot_with_unknowns"]]})
+  unk_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_std_curves_with_samples.pdf", sep = "")
+  if (print_plots == TRUE) {
+    pdf(file = unk_plot_name)
+    print(unk_plots_list)
+    dev.off()
+  } else {
+    print(std_plots_list) # prints to screen if a PDF printout is not wanted
+  }
+  
+  # Finished running the script
+  print("96_well_spec_analysis.R: finished.")
   
 }
 
-# Make multi-panel standard curve plots, if desired
-std_plots_list <- lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["std_plot"]]})
-std_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_std_curves.pdf", sep = "")
-if (print_plots == TRUE) {
-  pdf(file = std_plot_name)
-  print(std_plots_list) # See https://stackoverflow.com/a/29834646, accessed 170815
-  dev.off()
-} else {
-  print(std_plots_list) # prints to screen if a PDF printout is not wanted
-}
-
-# Do again for the standard curves with samples overlaid
-unk_plots_list <- lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["std_plot_with_unknowns"]]})
-unk_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_std_curves_with_samples.pdf", sep = "")
-if (print_plots == TRUE) {
-  pdf(file = unk_plot_name)
-  print(unk_plots_list)
-  dev.off()
-} else {
-  print(std_plots_list) # prints to screen if a PDF printout is not wanted
-}
-
-# Finished running the script
-print("96_well_spec_analysis.R: finished.")
