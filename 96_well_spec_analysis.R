@@ -405,7 +405,7 @@ convert_to_concentration <- function(summarized_unknowns, std_curve_summary) {
     annotation_logticks() +
     xlab("Concentration (uM)") +
     ylab("Absorbance (blanked)") +
-    ggtitle(paste("Plate_number: ", unique(plate_table_blanked$Plate_number), sep = ""))
+    ggtitle(paste("Plate_number: ", unique(summarized_unknowns$Plate_number), sep = ""))
   
   # Add on samples to the standard plot
   unk_plot <- std_plot +
