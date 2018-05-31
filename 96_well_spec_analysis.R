@@ -86,7 +86,7 @@ parse_input_file <- function(file_name) {
   # Determine the number of plates
   plate_endings <- grep("^~End", unparsed_data)
   number_of_plates <- length(plate_endings)
-  print(paste("File ", file_name, ": found ",number_of_plates," plates' worth of plate data.", sep = ""))
+  cat(paste("File ", file_name, ": found ",number_of_plates," plates' worth of plate data.", sep = ""))
   
   # Call function to get the data for each plate
   plate_data <- lapply(1:number_of_plates, function(x) {parse_individual_plate(unparsed_data, plate_endings[x], x)})
@@ -131,7 +131,7 @@ merge_input_files_data <- function(all_plates_list) {
   if (total_plate_number != final_plate_number) {
     stop("ERROR: problem encountered in plate renumbering during file import. Exiting out.")
   } else {
-    print(paste("Imported data from a total of ", final_plate_number, " plate(s).", sep = ""))
+    cat(paste("Imported data from a total of ", final_plate_number, " plate(s).", sep = ""))
   }
   
   return(all_plate_data)
@@ -166,9 +166,9 @@ parse_raw_data <- function(plate_data_filename, sample_metadata_filename) {
   # Determine number of files provided
   number_of_files <- length(plate_data_filename)
   if (number_of_files == 1) {
-    print(paste("Loading data from ", number_of_files, " file...", sep = ""))
+    cat(paste("Loading data from ", number_of_files, " file...", sep = ""))
   } else if (number_of_files > 1) {
-    print(paste("Loading data from ", number_of_files, " files in sequential order...", sep = ""))
+    cat(paste("Loading data from ", number_of_files, " files in sequential order...", sep = ""))
   } else {
     stop("ERROR: no input files detected")
   }
@@ -549,9 +549,9 @@ main <- function() {
   output_filenames_prefix <- substr(plate_data_filename[1], 1, nchar(plate_data_filename[1])-4)
   
   if (parse_raw_plate_data == TRUE) {
-    print("Parsing plate data...")
+    cat("Parsing plate data...")
     plate_data_merged <- parse_raw_data(plate_data_filename, sample_metadata_filename)
-    print("Successfully read in plate data and sample naming data.")
+    cat("Successfully read in plate data and sample naming data.")
     
     # Export combined data if desired
     # TODO - make non-optional
@@ -623,7 +623,7 @@ main <- function() {
   print_std_curve_plots(unknowns_data, plate_data_filename, print_plots, 
                         std_type = "std_plot_with_unknowns", file_ending = "_std_curves_with_samples.pdf")
   
-  print("96_well_spec_analysis.R: finished.")
+  cat("96_well_spec_analysis.R: finished.")
   
 }
 
