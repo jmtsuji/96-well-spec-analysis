@@ -510,6 +510,38 @@ summarize_processed_data <- function(plate_data_merged, unknowns_data) {
   
 }
 
+# Description: writes Excel table of summarized data
+write_excel_table <- function(output_filenames_prefix, summarized_data_list) {
+  # Hard-coded
+  # TODO - pull out into top of script
+  table_sheetnames <- c("Unknowns", "Standards", "Blanks", "Trendlines")
+  
+  # Save as Excel workbook with multiple sheets
+  xlsx_table_filename <- paste(output_filenames_prefix, "_calculations.xlsx", sep = "")
+  for (i in 1:length(summarized_data_list)) {
+    if (i == 1) {
+      write.xlsx2(as.data.frame(summarized_data_list[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=FALSE)
+    } else {
+      write.xlsx2(as.data.frame(summarized_data_list[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=TRUE)
+    }
+  }
+}
+
+# Description: writes standard curve plots to file
+# TODO - define entire output filename as input to the function
+print_std_curve_plots <- function(unknowns_data, plate_data_filename, print_plots, std_type, file_ending) {
+  # TODO - make this non-optional
+  std_plots_list <- lapply(names(unknowns_data), function(x) {unknowns_data[[x]][[std_type]]})
+  std_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), file_ending, sep = "")
+  if (print_plots == TRUE) {
+    pdf(file = std_plot_name)
+    print(std_plots_list) # See https://stackoverflow.com/a/29834646, accessed 170815
+    dev.off()
+  } else {
+    print(std_plots_list) # prints to screen if a PDF printout is not wanted
+  }
+}
+
 main <- function() {
   
   ##### Import plate data
@@ -574,54 +606,23 @@ main <- function() {
   # Write summary table if desired
   # TODO - make this non-optional
   if (print_processed_data == TRUE) {
-    # Modify input file name as the output name for the table
-    # TODO - fix variable names here to match rest of script
-    table_filenames_prefix <- output_filenames_prefix # from Part A
     
-    table_sheetnames <- c("Unknowns", "Standards", "Blanks", "Trendlines")
-    tables_to_write <- summarized_data_list # from above
-    
-    # Save as Excel workbook with multiple sheets
-    xlsx_table_filename <- paste(table_filenames_prefix, "_calculations.xlsx", sep = "")
-    for (i in 1:length(tables_to_write)) {
-      if (i == 1) {
-        write.xlsx2(as.data.frame(tables_to_write[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=FALSE)
-      } else {
-        write.xlsx2(as.data.frame(tables_to_write[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=TRUE)
-      }
-    }
+    write_excel_table(output_filenames_prefix, summarized_data_list)
     
     # Also export unknowns as TSV
-    table_filename_unknowns <- paste(table_filenames_prefix, "_unknowns.tsv", sep = "")
+    table_filename_unknowns <- paste(output_filenames_prefix, "_unknowns.tsv", sep = "")
     write.table(plate_data_unknowns, file = table_filename_unknowns, sep = "\t", col.names = TRUE, row.names = FALSE)
     
   }
   
   # Make multi-panel standard curve plots, if desired
-  # TODO - make this non-optional
-  std_plots_list <- lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["std_plot"]]})
-  std_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_std_curves.pdf", sep = "")
-  if (print_plots == TRUE) {
-    pdf(file = std_plot_name)
-    print(std_plots_list) # See https://stackoverflow.com/a/29834646, accessed 170815
-    dev.off()
-  } else {
-    print(std_plots_list) # prints to screen if a PDF printout is not wanted
-  }
+  # TODO - define entire output filename as input to the function
+  print_std_curve_plots(unknowns_data, plate_data_filename, print_plots, 
+                        std_type = "std_plot", file_ending = "_std_curves.pdf")
   
-  # Do again for the standard curves with samples overlaid
-  # TODO - make this non-optional
-  unk_plots_list <- lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["std_plot_with_unknowns"]]})
-  unk_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_std_curves_with_samples.pdf", sep = "")
-  if (print_plots == TRUE) {
-    pdf(file = unk_plot_name)
-    print(unk_plots_list)
-    dev.off()
-  } else {
-    print(std_plots_list) # prints to screen if a PDF printout is not wanted
-  }
+  print_std_curve_plots(unknowns_data, plate_data_filename, print_plots, 
+                        std_type = "std_plot_with_unknowns", file_ending = "_std_curves_with_samples.pdf")
   
-  # Finished running the script
   print("96_well_spec_analysis.R: finished.")
   
 }
