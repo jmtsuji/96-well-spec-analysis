@@ -9,9 +9,9 @@ VERSION <- "v0.3" # to match git tag
 ## User variables: #################################
 setwd("/Users/JTsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
 parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
-plate_data_filename <- c("example_input/example_raw_plate_data_1.txt", "example_input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
+plate_data_filename <- c("testing/input/example_raw_plate_data_1.txt", "testing/input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
                         # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
-sample_metadata_filename <- "example_input/example_sample_metadata.tsv" # Not needed if parse_raw_plate_data == FALSE
+sample_metadata_filename <- "testing/input/example_sample_metadata.tsv" # Not needed if parse_raw_plate_data == FALSE
 force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
 #####################################################
 
@@ -20,14 +20,15 @@ force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recomm
 # ## User variables FOR TESTING: #################################
 # setwd("/Users/JTsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
 # parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
-# plate_data_filename <- c("example_input/example_raw_plate_data_1.txt", "example_input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
+# plate_data_filename <- c("testing/input/example_raw_plate_data_1.txt", "testing/input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames
 # # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
-# sample_metadata_filename <- "example_input/example_sample_metadata.tsv" # Not needed if parse_raw_plate_data == FALSE
+# sample_metadata_filename <- "testing/input/example_sample_metadata.tsv" # Not needed if parse_raw_plate_data == FALSE
 # force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
 # #####################################################
 
 #####################################################
 ## Load required packages: ##########################
+# TODO - add check function to see if these have been installed, and exit if not
 library(plyr)
 library(dplyr)
 library(ggplot2)
@@ -67,25 +68,27 @@ parse_individual_plate <- function(unparsed_plate_data, plate_ending_line, plate
 
 # Description: loads one input file (can contain multiple plates)
 parse_input_file <- function(file_name) {
-  # file_name <- plate_data_filename[1]
+  # Internal dependency functions: 'parse_individual_plate'
   
   # Read the vectorized input - got code here from the readLines help file
   con <- file(file_name, encoding = "UTF-16LE") # Assumed encoding based on the output of the plate reader software
+  # TODO - try to detect this (or throw an error if it doesn't work?)
   unparsed_data <- readLines(con)
   close(con)
   # unique(Encoding(A))
   
-  # Parse the input
+  ### Parse the input
   # Eliminate the first line and last line (extraneous)
   unparsed_data <- unparsed_data[-c(1, length(unparsed_data))]
   
   # Determine the number of plates
   plate_endings <- grep("^~End", unparsed_data)
   number_of_plates <- length(plate_endings)
-  cat(paste("File ", file_name, ": found ",number_of_plates," plates' worth of plate data.", sep = ""))
+  cat(paste("File ", file_name, ": found ",number_of_plates," plates' worth of plate data.\n", sep = ""))
   
   # Call function to get the data for each plate
-  plate_data <- lapply(1:number_of_plates, function(x) {parse_individual_plate(unparsed_data, plate_endings[x], x)})
+  plate_data <- lapply(1:number_of_plates, 
+                       function(x) {parse_individual_plate(unparsed_data, plate_endings[x], x)})
   
   # Combine into a single data frame
   plate_data <- dplyr::bind_rows(plate_data)
@@ -93,14 +96,16 @@ parse_input_file <- function(file_name) {
   return(plate_data)
 }
 
-# Description: merges all absorbance data into a single table (requires plate numbering adjustments)
+# Description: merges all absorbance data into a single table
+# (requires plate numbering adjustments)
 merge_input_files_data <- function(all_plates_list) {
-  # all_plates_list <- all_files_plate_data
+  # Internal dependency functions: none
   
   # Determine total number of plates and renumber plates to match
   # Start with an empty vector and add plates in a loop
   total_plate_number <- 0
   for (i in 1:length(all_plates_list)) {
+    # Test data
     # i <- 1
     
     # Get the plate number up to this point in the loop
@@ -122,18 +127,19 @@ merge_input_files_data <- function(all_plates_list) {
   
   all_plate_data <- dplyr::bind_rows(all_plates_list)
   
-  # Check number of plates found in for loop matches the number evident after merging
+  # Check number of plates found in 'for loop' matches the number evident after merging
   final_plate_number <- length(unique(all_plate_data$Plate_number))
   if (total_plate_number != final_plate_number) {
     stop("ERROR: problem encountered in plate renumbering during file import. Exiting out.")
   } else {
-    cat(paste("Imported data from a total of ", final_plate_number, " plate(s).", sep = ""))
+    cat(paste("Imported data from a total of ", final_plate_number, " plate(s).\n", sep = ""))
   }
   
   return(all_plate_data)
 }
 
 # Description: adds sample metadata to the parsed absorbance data
+# TODO - change this so that there is one metadata sheet for each plate input file, to avoid confusion.
 add_sample_metadata <- function(all_plate_data, metadata_filename) {
   ## Import sample order data
   plate_order <- read.table(metadata_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
@@ -162,9 +168,9 @@ parse_raw_data <- function(plate_data_filename, sample_metadata_filename) {
   # Determine number of files provided
   number_of_files <- length(plate_data_filename)
   if (number_of_files == 1) {
-    cat(paste("Loading data from ", number_of_files, " file...", sep = ""))
+    cat(paste("Loading data from ", number_of_files, " file...\n", sep = ""))
   } else if (number_of_files > 1) {
-    cat(paste("Loading data from ", number_of_files, " files in sequential order...", sep = ""))
+    cat(paste("Loading data from ", number_of_files, " files in sequential order...\n", sep = ""))
   } else {
     stop("ERROR: no input files detected")
   }
@@ -182,63 +188,84 @@ parse_raw_data <- function(plate_data_filename, sample_metadata_filename) {
   
 }
 
-# Description: determines one standard curve for each plate
+# Description: generates summary stats for blanking group for each plate.
+# Throws a warning if SD > 10% of mean
+# MUST be one blank per plate for each group in that plate (good form)
+summarize_blanks <- function(plate_table) {
+  ### Summarize blanks
+  blanks_raw <- filter(plate_table, Sample_type == "Blank")
+  # TODO - check if 'Standard_conc' is really needed.
+  blanks_grouped <- group_by(blanks_raw, Blanking_group, Sample_name, Plate_number)
+  blanks_summ <- summarise(blanks_grouped, Blank_ave_abs = mean(Absorbance), Blank_stdDev_abs = sd(Absorbance))
+  
+  # Throw a warning if SD > 10% of mean
+  for (i in 1:nrow(blanks_summ)) {
+    if (blanks_summ$Blank_stdDev_abs[i] > (blanks_summ$Blank_ave_abs[i]) / 10) {
+      warning(paste("Plate ", unique(plate_table$Plate_number), ": ", blanks_summ$Blanking_group[i], ": standard deviation is > 10% of mean of replicate blanks. Data could be fishy...", sep = ""))
+    }
+  }
+  
+  return(blanks_summ)
+}
+
+# Description: blanks the absorbances of all standards/samples
+# Return: data table with the blanked absorbances
+blank_absorbances <- function(plate_table, summarized_blanks) {
+  
+  # Remove sample name column from blank to avoid issue in joining
+  summarized_blanks$Sample_name <- NULL
+  
+  # Join tables
+  plate_table_blanked <- dplyr::left_join(plate_table, summarized_blanks, by = c("Plate_number", "Blanking_group"))
+  
+  # Blank tables
+  plate_table_blanked$Absorbance_blanked <- plate_table_blanked$Absorbance - plate_table_blanked$Blank_ave_abs
+  
+  # TODO - consider removing some unnecessary columns introduced by the join
+  return(plate_table_blanked)
+  
+}
+
+# Description: determines standard curve for an individual plate
 # Assume one standard for whole plate with different blanking options
-make_standard_curve <- function(data_table) {
-  # data_table <- plate_data_sep[[1]]
+# TODO - currently uses one standard for entire plate. Change to one per file?
+make_standard_curve <- function(plate_table_blanked) {
+  # plate_table <- plate_data_sep[[1]]
   
   ## Summarize standard curve data
-  std_raw <- filter(data_table, Sample_type == "Standard")
+  std_raw <- filter(plate_table_blanked, Sample_type == "Standard")
   std_grouped <- group_by(std_raw, Blanking_group, Treatment, Sample_name, Standard_conc, Plate_number)
-  std_summ <- summarise(std_grouped, Ave_abs = mean(Absorbance), StdDev_abs = sd(Absorbance))
+  std_summ <- summarise(std_grouped, Ave_abs_blanked = mean(Absorbance_blanked), StdDev_abs_blanked = sd(Absorbance_blanked))
   
-  # Get Blanking Group of standards
+  # Check if standards belong to more than one blanking group. Could imply that there are multiple types of standards in a single plate, which this script cannot handle.
   std_Blanking_group <- as.character(unique(std_summ$Blanking_group))
   
   # Check that only one Blanking Group is present and throw a warning otherwise -- handling multiple is not yet supported.
   if (length(std_Blanking_group) > 1) {
-    stop("ERROR: detected standards of multiple Blanking Groups in the dataset. The script is not yet able to handle this. Exiting out...")
-  }
-  
-  ### Summarize blanks
-  blanks_raw <- filter(data_table, Sample_type == "Blank")
-  blanks_grouped <- group_by(blanks_raw, Blanking_group, Sample_name, Standard_conc, Plate_number)
-  blanks_summ <- summarise(blanks_grouped, Ave_abs = mean(Absorbance), StdDev_abs = sd(Absorbance))
-  
-  # Find blank matching Blanking Group of standards and pull out absorbance
-  std_blank_row <- match(std_Blanking_group, blanks_summ$Blanking_group)
-  std_blank_abs <- as.numeric(blanks_summ[std_blank_row,"Ave_abs"])
-  std_blank_abs_sd <- as.numeric(blanks_summ[std_blank_row,"StdDev_abs"])
-  # Check that standard deviation (if exists) is less than 10% to make sure the blank is okay. If not, throw a warning.
-  if (is.na(std_blank_abs_sd) == FALSE) {
-    if (std_blank_abs_sd > (0.1 * std_blank_abs)) {
-      warning(paste("Plate_number ", unique(data_table$Plate_number), ": std. dev. of standards blank is >10% of its average. Something could be fishy with the input data.", sep = ""))
-    }
+    warning(paste("Detected standards of multiple Blanking Groups in Plate ", 
+                  unique(plate_table_blanked$Plate_number), ". the dataset. The script is not yet able to handle this. Should only be one type of standard per plate. Your data could be unusual...", sep = ""))
   }
   
   # Check if blank absorbance is greater than absorbance of lowest standard
-  if (min(std_summ$Ave_abs) < std_blank_abs) {
+  if (min(std_summ$Ave_abs_blanked) < 0) {
     # Identify number of standards below blank
-    stds_below_blank <- nrow(dplyr::filter(std_summ, Ave_abs < std_blank_abs))
-    std_names_below_blank <- unique(dplyr::filter(std_summ, Ave_abs < std_blank_abs)$Sample_name)
+    stds_below_blank <- dplyr::filter(std_summ, Ave_abs_blanked < 0)
+    std_names_below_blank <- unique(stds_below_blank$Sample_name)
     std_names_below_blank_readable <- glue::collapse(std_names_below_blank, sep = ", ")
     
     # Throw a warning
-    warning(paste("Plate_number ", unique(data_table$Plate_number), ": blank has higher absorbance than ", stds_below_blank, 
+    warning(paste("Plate_number ", unique(plate_table$Plate_number), ": blank has higher absorbance than ", nrow(stds_below_blank), 
                   " of the standards (",  std_names_below_blank_readable, "). Will throw out all standards below blank.", sep = ""))
     
     # Remove all standards with absorbance lower than blank
-    std_summ <- dplyr::filter(std_summ, Ave_abs > std_blank_abs)
+    std_summ <- dplyr::filter(std_summ, Ave_abs_blanked > 0)
   }
-  
-  # Subtract blank from all standards
-  std_summ$Ave_abs <- (std_summ$Ave_abs - std_blank_abs)
   
   # Make linear trendline
   if (force_zero == TRUE) {
-    trendline <- lm(Ave_abs ~ 0 + Standard_conc, data = std_summ) # Forcing through origin: https://stackoverflow.com/a/18947967, accessed 170815
+    trendline <- lm(Ave_abs_blanked ~ 0 + Standard_conc, data = std_summ) # Forcing through origin: https://stackoverflow.com/a/18947967, accessed 170815
   } else {
-    trendline <- lm(Ave_abs ~ Standard_conc, data = std_summ)
+    trendline <- lm(Ave_abs_blanked ~ Standard_conc, data = std_summ)
   }
   
   # Summarize some trendline values
@@ -251,151 +278,115 @@ make_standard_curve <- function(data_table) {
   trendline_summ <- data.frame("Intercept" = unname(trendline_coeff[1]), "Slope" = unname(trendline_coeff[2]), "R_squared" = trendline_Rsquared, "Plate_number" = unique(std_summ$Plate_number), stringsAsFactors = FALSE)
   
   # Return list of processed data
-  output_list <- list(std_summ, trendline_summ, blanks_summ)
-  names(output_list) <- c("Standards_blanked", "Trendline", "Blanks_all")
+  std_curve_summary <- list(std_summ, trendline_summ)
+  names(std_curve_summary) <- c("Standards_blanked", "Trendline")
   
-  return(output_list)
+  return(std_curve_summary)
 }
 
-# Description: blanks the sample/standard absorbances to user-defined blanks
-# (need to refactor nested loop for clarity)
-blank_unknowns <- function(summarized_unknowns, summarized_blanks) {
-  # # Test variables
-  # unk_raw <- dplyr::filter(plate_data_sep[[1]], Sample_type == "Unknown")
-  # unk_grouped <- group_by(unk_raw, Blanking_group, Treatment, Sample_name, Dilution_factor, Plate_number, Replicate)
-  # summarized_unknowns <- summarise(unk_grouped, Ave_abs = mean(Absorbance), StdDev_abs = sd(Absorbance))
-  # summarized_blanks <- make_standard_curve(plate_data_sep[[1]])$Blanks_all
+# Description: summarizes unknowns
+summarize_unknowns <- function(plate_table_blanked) {
   
-  # Get all Blanking Groups
-  unk_Blanking_groups <- as.character(unique(summarized_unknowns$Blanking_group))
+  ## Summarize standard curve data
+  unk_raw <- filter(plate_table_blanked, Sample_type == "Unknown")
+  unk_grouped <- group_by(unk_raw, Blanking_group, Treatment, Sample_name, Dilution_factor, Plate_number, Replicate)
+  summarized_unknowns <- summarise(unk_grouped, Ave_abs_blanked = mean(Absorbance_blanked), StdDev_abs_blanked = sd(Absorbance_blanked))
   
-  # For each Blanking Group, get the corresponding blank value and use to blank the unknown
-  summarized_unknowns$Blank_abs_ave <- numeric(length = nrow(summarized_unknowns))
-  summarized_unknowns$Blank_abs_sd <- numeric(length = nrow(summarized_unknowns))
-  summarized_unknowns$Ave_abs_blanked <- numeric(length = nrow(summarized_unknowns))
-  for (i in 1:length(unk_Blanking_groups)) {
-    # i <- 1
-    
-    # Get name of Blanking Group
-    unk_b_grp <- unk_Blanking_groups[i]
-    
-    # Find match in blanks summary table
-    # Throw a warning if the blanking group does not exist.
-    if (is.na(match(unk_b_grp, summarized_blanks$Blanking_group)) == TRUE) {
-      warning(paste("No blank available for group ", unk_b_grp, ", for Plate_number ", unique(summarized_unknowns$Plate_number), 
-                    ". Will not generate concentration values for any of the measurements from this blanking group.", sep = ""))
-    }
-    matching_row <- match(unk_b_grp, summarized_blanks$Blanking_group)
-      
-    # Pull out average and standard deviation
-    blank_abs <- as.numeric(summarized_blanks[matching_row,"Ave_abs"])
-    blank_abs_sd <- as.numeric(summarized_blanks[matching_row,"StdDev_abs"])
-    
-    # Throw a warning if standard deviation exists and is >10% of average
-    if (is.na(blank_abs_sd) == FALSE) {
-      if (blank_abs_sd > (0.1 * blank_abs)) {
-        warning(paste("Plate_number ", unique(summarized_unknowns$Plate_number), ": Blanking unknowns: standard deviation of blank for group ", unk_b_grp," is >10% of the average value of the blank. Something could be fishy with the input data.", sep = ""))
-      }
-    }
-    
-    # Find unknowns matching the standard
-    unknowns_row_num <- which(summarized_unknowns$Blanking_group %in% unk_b_grp) # https://stackoverflow.com/a/30282302, accessed 170925
-    
-    for (j in unknowns_row_num) {
-      # j <- unknowns_row_num[1]
-      summarized_unknowns$Ave_abs_blanked[j] <- summarized_unknowns$Ave_abs[j] - blank_abs
-      summarized_unknowns$Blank_abs_ave[j] <- blank_abs
-      summarized_unknowns$Blank_abs_sd[j] <- blank_abs_sd
-    }
-    
+  # Throw a warning if the blanking group does not exist for an unknown.
+  if (anyNA(summarized_unknowns$Ave_abs_blanked) == TRUE) {
+    # TODO - add code to determine the exact blanking group that is missing
+    warning(paste("Plate ", unique(plate_table_blanked$Plate_number), ": at least one blanking group for unknowns has no corresponding blank. Data will contain NA values.", sep = ""))
   }
   
   return(summarized_unknowns)
 }
 
-# Description: converts sample absorbances to concentrations for each Plate_number, re-blanking standards as needed
-convert_to_concentration <- function(data_table, std_list) {
-  # data_table <- plate_data_sep[[1]]
-  # std_list <- plate_data_stds[[1]]
+# Description: converts sample absorbances to concentrations for a plate
+# TODO - split into multiple functions (calculate, check, plot)
+convert_to_concentration <- function(summarized_unknowns, std_curve_summary) {
   
-  ### Summarize unknowns data
-  unk_raw <- filter(data_table, Sample_type == "Unknown")
-  unk_grouped <- group_by(unk_raw, Blanking_group, Treatment, Sample_name, Dilution_factor, Plate_number, Replicate)
-  unk_summ <- summarise(unk_grouped, Ave_abs = mean(Absorbance), StdDev_abs = sd(Absorbance))
-  
-  # Subtract appropriate blanks
-  unk_summ <- blank_unknowns(unk_summ, std_list$Blanks_all)
+  # Unpack the standard curve summary
+  std_curve_data <- std_curve_summary[[1]]
+  std_curve_trendline <- std_curve_summary[[2]]
   
   # Convert to concentration using standard curve (linear model) AND dilution factor
-  unk_summ$Ave_concentration_uM <- (unk_summ$Ave_abs_blanked - std_list$Trendline$Intercept) / std_list$Trendline$Slope * unk_summ$Dilution_factor
+  summarized_unknowns$Ave_concentration_uM <- (summarized_unknowns$Ave_abs_blanked - 
+                                      std_curve_trendline$Intercept) / std_curve_trendline$Slope * summarized_unknowns$Dilution_factor
   
   # Get standard devations (also accounting for dilution factor)
-  unk_summ$StdDev_Concentration_uM <- (unk_summ$StdDev_abs / std_list$Trendline$Slope) * unk_summ$Dilution_factor
+  summarized_unknowns$StdDev_Concentration_uM <- (summarized_unknowns$StdDev_abs_blanked / 
+                                         std_curve_trendline$Slope) * summarized_unknowns$Dilution_factor
   # For calculating std dev like this, see http://www.psychstat.missouristate.edu/introbook/sbk15.htm, accessed ~Jan. 2017
   
   # Throw a warning if some concentrations are negative
-  if (min(unk_summ$Ave_concentration_uM) <= 0) {
-    neg_values_positions <- which(unk_summ$Ave_concentration_uM <= 0)
-    neg_values <- unk_summ$Ave_concentration_uM[neg_values_positions]
+  if (min(summarized_unknowns$Ave_concentration_uM) <= 0) {
+    neg_values_positions <- which(summarized_unknowns$Ave_concentration_uM <= 0)
+    neg_values <- summarized_unknowns$Ave_concentration_uM[neg_values_positions]
     num_neg_values <- length(neg_values)
     neg_values_readable <- glue::collapse(round(neg_values, 3), sep = ", ")
-    
-    # Omit those from standard curve plotting data frame
-    unk_summ_plot <- unk_summ[-neg_values_positions,]
+
+    # TODO - omit this entirely?    
+    # # Omit those from standard curve plotting data frame (but keep in the unknowns data)
+    # summarized_unknowns_plot <- summarized_unknowns[-neg_values_positions,]
     
     # Report what was done
     if (num_neg_values == 1) {
-      warning("Plate_number ", unique(unk_summ$Plate_number), ": ", num_neg_values, " sample has a negative concentration based on standard curve (",
-              glue::collapse(round(neg_values, 3), sep = ", "), "). Will keep in final table but omit from standard curve plot.", sep = "")
+      warning("Plate_number ", unique(summarized_unknowns$Plate_number), ": ", num_neg_values, " sample has a negative concentration based on standard curve (",
+              glue::collapse(round(neg_values, 3), sep = ", "), ").", sep = "")
     } else if (num_neg_values > 1) {
-      warning("Plate_number ", unique(unk_summ$Plate_number), ": ", num_neg_values, " samples have negative concentrations based on standard curve (",
-              neg_values_readable, "). Will keep in final table but omit from standard curve plot.", sep = "")
+      warning("Plate_number ", unique(summarized_unknowns$Plate_number), ": ", num_neg_values, " samples have negative concentrations based on standard curve (",
+              neg_values_readable, ").", sep = "")
     }
     
-    # (Probably rare:) Check that negative absorbances do not remain even after removing negative concentrations. If they do remain, then remove them
-    if (min(unk_summ_plot$Ave_abs_blanked) < 0) {
-      neg_abs_positions <- which(unk_summ_plot$Ave_abs_blanked <= 0)
-      unk_summ_plot <- unk_summ_plot[-neg_abs_positions,]
+    # (Probably rare:) Check if negative absorbances remain even after removing negative concentrations
+    if (min(summarized_unknowns_plot$Ave_abs_blanked) < 0) {
+      neg_abs_positions <- which(summarized_unknowns_plot$Ave_abs_blanked <= 0)
       
-      warning(paste("Plate_number ", unique(unk_summ$Plate_number), ": Also removed ", num_neg_values, " additional samples with positive concentrations but negative blanked absorbances from standard curve plot.", sep = ""))
+      warning(paste("Plate_number ", unique(summarized_unknowns$Plate_number), ": also note that ", num_neg_values, " additional samples have positive concentrations but negative blanked absorbances... something could be odd with the data.", sep = ""))
     }
     
   } else {
     # No issues with negative concentrations.
-    unk_summ_plot <- unk_summ
+    # TODO - omit making this secondary data table if I end up choosing to never omit values from the plot.
+    summarized_unknowns_plot <- summarized_unknowns
   }
   
   # Generate error bar values in plotting data frame ahead of time and see if any are below zero (will cause error due to log scale)
-  unk_summ_plot$errorbar_min <- unk_summ_plot$Ave_abs_blanked - unk_summ_plot$StdDev_abs
-  unk_summ_plot$errorbar_max <- unk_summ_plot$Ave_abs_blanked + unk_summ_plot$StdDev_abs
+  summarized_unknowns_plot$errorbar_min <- summarized_unknowns_plot$Ave_abs_blanked - summarized_unknowns_plot$StdDev_abs_blanked
+  summarized_unknowns_plot$errorbar_max <- summarized_unknowns_plot$Ave_abs_blanked + summarized_unknowns_plot$StdDev_abs_blanked
   
-  if (min(unk_summ_plot$errorbar_max) < 0) {
+  if (min(summarized_unknowns_plot$errorbar_max) < 0) {
     # Max error bar should not be < 0 at this point, because negative data points for concentration were already removed
-    warning(paste("Plate_number ", unique(unk_summ$Plate_number), ": something seems wrong with the error bars on samples in the standard curve plots...", sep = ""))
+    warning(paste("Plate_number ", unique(summarized_unknowns$Plate_number), ": something seems wrong with the error bars on samples in the standard curve plots...", sep = ""))
     
-  } else if (min(unk_summ_plot$errorbar_min) < 0) {
+  } else if (min(summarized_unknowns_plot$errorbar_min) < 0) {
     # Eliminate negative values and replace with the value of the point itself (so bottom bars will essentially be unplotted)
-    neg_errorbar_pos <- which(unk_summ_plot$errorbar_min < 0)
-    unk_summ_plot$errorbar_min[neg_errorbar_pos] <- unk_summ_plot$Ave_abs_blanked[neg_errorbar_pos]
+    neg_errorbar_pos <- which(summarized_unknowns_plot$errorbar_min < 0)
+    summarized_unknowns_plot$errorbar_min[neg_errorbar_pos] <- summarized_unknowns_plot$Ave_abs_blanked[neg_errorbar_pos]
     
-    warning(paste("Plate_number ", unique(unk_summ$Plate_number), ": had to remove negative min. error bar positions for ", length(neg_errorbar_pos), 
+    warning(paste("Plate_number ", unique(summarized_unknowns$Plate_number), ": had to remove negative min. error bar positions for ", length(neg_errorbar_pos), 
                 " sample(s) in the std. curve plot in order to make the sample(s) plot-able. Unchanged in the actual data, however...", sep = ""))
   }
   
   # Figure out where to put the trend line equation text on the plot
-  min_x <- min(std_list$Standards_blanked$Standard_conc)
-  max_x <- max(std_list$Standards_blanked$Standard_conc)
-  min_y <- min(std_list$Standards_blanked$Ave_abs)
-  max_y <- max(std_list$Standards_blanked$Ave_abs)
+  min_x <- min(std_curve_data$Standard_conc)
+  max_x <- max(std_curve_data$Standard_conc)
+  min_y <- min(std_curve_data$Ave_abs_blanked)
+  max_y <- max(std_curve_data$Ave_abs_blanked)
+  # TODO - pull these out to the top of the script?
   x_coord <- (max_x - min_x) * 0.05 # arbitrary position 5% to the right of the y axis
   y_coord <- (max_y - min_y) * 0.8 # arbitrary position 80% above the x axis
   
   ## Make standards plot without samples
-  std_plot <- ggplot(std_list$Standards_blanked, aes(x = Standard_conc, y = Ave_abs)) +
+  std_plot <- ggplot(std_curve_data, aes(x = Standard_conc, y = Ave_abs_blanked)) +
     geom_smooth(method = "lm", se = T, colour = "purple") +
-    geom_errorbar(aes(x = Standard_conc, ymin = Ave_abs-StdDev_abs, ymax = Ave_abs+StdDev_abs), width = 0, size = 0.8, alpha = 0.8) +
+    geom_errorbar(aes(x = Standard_conc, ymin = Ave_abs_blanked-StdDev_abs_blanked, 
+                      ymax = Ave_abs_blanked+StdDev_abs_blanked), width = 0, size = 0.8, alpha = 0.8) +
     geom_point(alpha = 0.9, size = 3) +
-    annotate("text", x = x_coord, y = y_coord, label = paste("y = ", round(std_list$Trendline$Slope, digits = 5), "x + ", round(std_list$Trendline$Intercept, digits = 5), "\n R^2 = ", round(std_list$Trendline$R_squared, digits = 5), sep = ""), size = 3) +
+    annotate("text", x = x_coord, y = y_coord, 
+             label = paste("y = ", round(std_curve_trendline$Slope, digits = 5), 
+                           "x + ", round(std_curve_trendline$Intercept, digits = 5), 
+                           "\n R^2 = ", round(std_curve_trendline$R_squared, digits = 5), sep = ""), size = 3) +
     theme_bw() +
     # Add theme elements to make the plot look nice
     theme(panel.grid = element_blank(), title = element_text(size = 10), axis.title = element_text(size = 12), 
@@ -414,32 +405,31 @@ convert_to_concentration <- function(data_table, std_list) {
     annotation_logticks() +
     xlab("Concentration (uM)") +
     ylab("Absorbance (blanked)") +
-    ggtitle(paste("Plate_number: ", unique(data_table$Plate_number), sep = ""))
-  
-  # # Print plot to the screen
-  # print(std_plot)
+    ggtitle(paste("Plate_number: ", unique(plate_table$Plate_number), sep = ""))
   
   # Add on samples to the standard plot
   unk_plot <- std_plot +
-    geom_errorbar(data = unk_summ_plot, aes(x = (Ave_concentration_uM / Dilution_factor), ymin = errorbar_min, ymax = errorbar_max), width = 0, size = 0.8, alpha = 0.8, colour = "darkcyan") +
-    geom_point(data = unk_summ_plot, aes((Ave_concentration_uM / Dilution_factor), Ave_abs_blanked), shape = 21, alpha = 0.8, size = 3, fill = "darkcyan")
-    
-  # # Print plot to the screen
-  # print(unk_plot)
+    geom_errorbar(data = summarized_unknowns_plot, 
+                  aes(x = (Ave_concentration_uM / Dilution_factor), 
+                      ymin = errorbar_min, ymax = errorbar_max), 
+                  width = 0, size = 0.8, alpha = 0.8, colour = "darkcyan") +
+    geom_point(data = summarized_unknowns_plot, 
+               aes((Ave_concentration_uM / Dilution_factor), Ave_abs_blanked), 
+               shape = 21, alpha = 0.8, size = 3, fill = "darkcyan")
   
-  output_list <- list(unk_summ, std_plot, unk_plot)
-  names(output_list) <- c("unk_summ", "std_plot", "std_plot_with_unknowns")
+  output_list <- list(summarized_unknowns, std_plot, unk_plot)
+  names(output_list) <- c("calculated_concentrations", "std_plot", "std_plot_with_unknowns")
   return(output_list)
 
 }
 
 # Description: creates a 96 well plate-style figure of the parsed data for checking purposes
-visual_check <- function(data_table) {
-  # data_table <- plate_data_sep[[2]]
+visual_check <- function(plate_table) {
+  # plate_table <- plate_data_sep[[2]]
   
   # Split wells into row and column
-  data_table$Well_row <- as.character(substr(data_table$Well, start = 1, stop = 1))
-  data_table$Well_col <- as.numeric(substr(data_table$Well, start = 2, stop = 3))
+  plate_table$Well_row <- as.character(substr(plate_table$Well, start = 1, stop = 1))
+  plate_table$Well_col <- as.numeric(substr(plate_table$Well, start = 2, stop = 3))
   
   # Make table of all wells in a 96 well plate to merge with main table
   # (in case some wells have been omitted by the user from the main table; this way, the entire 96 well plate will appear in the figure)
@@ -447,34 +437,84 @@ visual_check <- function(data_table) {
                          "Well_col" = rep(c(1:12), 8), stringsAsFactors = FALSE)
   
   # Merge tables
-  data_table <- dplyr::full_join(data_table, wells_96, by = c("Well_row", "Well_col"))
+  plate_table <- dplyr::full_join(plate_table, wells_96, by = c("Well_row", "Well_col"))
   
   # Put rows in order
-  data_table$Well_row <- factor(data_table$Well_row, levels = rev(c("A", "B", "C", "D", "E", "F", "G", "H")), ordered = TRUE)
+  plate_table$Well_row <- factor(plate_table$Well_row, levels = rev(c("A", "B", "C", "D", "E", "F", "G", "H")), ordered = TRUE)
   
   # Make annotation text
-  data_table$Annotation <- paste(data_table$Sample_name, " ", data_table$Replicate, "\n", data_table$Absorbance, sep = "")
+  plate_table$Annotation <- paste(plate_table$Sample_name, " ", plate_table$Replicate, "\n", plate_table$Absorbance, sep = "")
   # Clean out ones with no sample
-  for (i in 1:length(data_table$Annotation)) {
-    if (data_table$Sample_name[i] == "" | is.na(data_table$Sample_name[i]) == TRUE) {
-      data_table$Annotation[i] <- ""
+  for (i in 1:length(plate_table$Annotation)) {
+    if (plate_table$Sample_name[i] == "" | is.na(plate_table$Sample_name[i]) == TRUE) {
+      plate_table$Annotation[i] <- ""
     }
   }
   
-  plate_diagram <- ggplot(data_table, aes(factor(Well_col), Well_row)) +
+  plate_diagram <- ggplot(plate_table, aes(factor(Well_col), Well_row)) +
     geom_point(aes(fill = Absorbance), shape = 21, size = 18) +
     geom_text(aes(label = Annotation), size = 2) +
     scale_fill_gradientn(colours = c("#ffffff", "#ff3399", "#660066"), limits = c(0,1)) + # Used limits to set absolute colour scale, as recommended at https://stackoverflow.com/a/21538521 (accessed Oct 2nd, 2017)
     xlab("") +
     ylab("") +
-    ggtitle(unique(data_table$Date))
+    ggtitle(unique(plate_table$Date))
   
   return(plate_diagram)
 }
 
-# Description: makes wide-format tables to summarize main data processing information
-summarize_processed_data <- function(plate_data_merged, unknowns_data) {
-  # Separate additional information provided by the user in the sample naming sheet to be integrated with output tables
+# Description: fully processes data for a single plate
+calculate_plate_data <- function(plate_table) {
+  summarized_blanks <- summarize_blanks(plate_table)
+  
+  plate_table_blanked <- blank_absorbances(plate_table, summarized_blanks)
+  
+  summarized_standards_list <- make_standard_curve(plate_table_blanked)
+  
+  summarized_unknowns <- summarize_unknowns(plate_table_blanked)
+  
+  # TODO - long-term, make separate functions for plotting versus summarizing unknowns
+  calculated_concentrations_all <- convert_to_concentration(summarized_unknowns, summarized_standards_list)
+  
+  # Unpack output
+  calculated_concentrations <- calculated_concentrations_all[[1]]
+  std_plot <- calculated_concentrations_all[[2]]
+  unk_plot <- calculated_concentrations_all[[3]]
+  
+  # Also unpack output from 'summarized_standards_list'
+  summarized_standards <- summarized_standards_list[[1]]
+  summarized_trendlines <- summarized_standards_list[[2]]
+  
+  # Run visual check
+  plate_diagram <- visual_check(plate_table)
+  
+  output_list <- list(calculated_concentrations, summarized_blanks, summarized_standards, summarized_trendlines, std_plot, unk_plot, plate_diagram)
+  names(output_list) <- c("Unknowns", "Blanks", "Standards", "Trendlines", "Std_curve_plot", "Std_curve_plot_with_unknowns", "Plate_diagrams")
+  
+  return(output_list)
+  
+}
+
+# Description: Given a nested list with identical structure across level 1, moves the list item of identical 
+# name or position from all lists into their own primary list
+subset_list <- function(all_plate_data_calculated, item) {
+  
+  similar_items <- lapply(names(all_plate_data_calculated), 
+                          function(x) { return(all_plate_data_calculated[[x]][[item]])})
+  names(similar_items) <- names(all_plate_data_calculated)
+  
+  return(similar_items)
+}
+
+# Description: clarified information in the summary tables
+summarize_processed_data <- function(plate_data_merged, separated_list_entries) {
+  # Join tables from different plates
+  # TODO - make this more elegant
+  separated_list_entries[["Unknowns"]] <- dplyr::bind_rows(separated_list_entries[["Unknowns"]])
+  separated_list_entries[["Blanks"]] <- dplyr::bind_rows(separated_list_entries[["Blanks"]])
+  separated_list_entries[["Standards"]] <- dplyr::bind_rows(separated_list_entries[["Standards"]])
+  separated_list_entries[["Trendlines"]] <- dplyr::bind_rows(separated_list_entries[["Trendlines"]])
+  
+  # Retrieve any additional metadata info provided by the user
   # Remove irrelevant information
   cols_to_remove <- c("Well", "Absorbance", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
   cols_nums_to_remove <- match(cols_to_remove, colnames(plate_data_merged))
@@ -482,58 +522,58 @@ summarize_processed_data <- function(plate_data_merged, unknowns_data) {
   merging_cols <- c("Plate_number", "Sample_name", "Replicate", "Treatment") # to use with join later
   
   # Summarize the unknowns (samples) data and re-order for clarity
-  plate_data_unknowns <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {unknowns_data[[x]][["unk_summ"]]}))
-  plate_data_unknowns <- plate_data_unknowns[,c(5,3,6,2,4,1,7,8,11,12,13)]
+  separated_list_entries$Unknowns <- separated_list_entries$Unknowns[,c(5,3,6,2,4,1,7,8,9,10)]
   # Join in other sample info provided by the user
-  plate_data_unknowns <- dplyr::inner_join(plate_data_unknowns, extra_sample_info, by = merging_cols)
+  separated_list_entries$Unknowns <- dplyr::inner_join(separated_list_entries$Unknowns, extra_sample_info, by = merging_cols)
   
   # Summarize standards and re-order for clarity
-  plate_data_standards <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Standards_blanked"]]}))
-  plate_data_standards <- plate_data_standards[,c(5,3,4,2,1,6,7)]
+  separated_list_entries$Standards <- separated_list_entries$Standards[,c(5,3,4,2,1,6,7)]
   
   # Summarize blanks and re-order for clarity
-  plate_data_blanks <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Blanks_all"]]}))
-  plate_data_blanks <- plate_data_blanks[,c(4,1,2,5,6)]
+  separated_list_entries$Blanks <- separated_list_entries$Blanks[,c(3,1,2,4,5)]
   
   # Summarize trendline and re-order for clarity
-  plate_data_trendlines <- dplyr::bind_rows(lapply(names(unknowns_data), function(x) {plate_data_stds[[x]][["Trendline"]]}))
-  plate_data_trendlines <- plate_data_trendlines[,c(4,2,1,3)]
+  separated_list_entries$Trendlines <- separated_list_entries$Trendlines[,c(4,2,1,3)]
   
-  output_list <- list(plate_data_unknowns, plate_data_standards, plate_data_blanks, plate_data_trendlines)
-  names(output_list) <- c("Unknowns", "Standards", "Blanks", "Trendlines")
-  
-  return(output_list)
+  return(separated_list_entries)
   
 }
 
 # Description: writes Excel table of summarized data
-write_excel_table <- function(output_filenames_prefix, summarized_data_list) {
-  # Hard-coded
-  # TODO - pull out into top of script
-  table_sheetnames <- c("Unknowns", "Standards", "Blanks", "Trendlines")
+write_excel_table <- function(output_filenames_prefix, summarized_table_list) {
+  
+  table_sheetnames <- names(summarized_table_list)
   
   # Save as Excel workbook with multiple sheets
   xlsx_table_filename <- paste(output_filenames_prefix, "_calculations.xlsx", sep = "")
-  for (i in 1:length(summarized_data_list)) {
+  for (i in 1:length(summarized_table_list)) {
     if (i == 1) {
-      write.xlsx2(as.data.frame(summarized_data_list[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=FALSE)
+      write.xlsx2(as.data.frame(summarized_table_list[[i]]), xlsx_table_filename, 
+                  sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=FALSE)
     } else {
-      write.xlsx2(as.data.frame(summarized_data_list[[i]]), xlsx_table_filename, sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=TRUE)
+      write.xlsx2(as.data.frame(summarized_table_list[[i]]), xlsx_table_filename, 
+                  sheetName = table_sheetnames[[i]], col.names=TRUE, row.names=FALSE, append=TRUE)
     }
   }
+  
 }
 
-# Description: writes standard curve plots to file
-# TODO - define entire output filename as input to the function
-print_std_curve_plots <- function(unknowns_data, plate_data_filename, std_type, file_ending) {
-
-  std_plots_list <- lapply(names(unknowns_data), function(x) {unknowns_data[[x]][[std_type]]})
-  std_plot_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), file_ending, sep = "")
-
-  pdf(file = std_plot_name)
-  print(std_plots_list) # See https://stackoverflow.com/a/29834646, accessed 170815
+# Description: prints a single PDF file with all plots in the input list (item_name within summarized_plot_list)
+print_plot_file <- function(summarized_plot_list, item_name) {
+  
+  plot_filename <- paste(output_filenames_prefix, "_", item_name, ".pdf", sep = "")
+  
+  # TODO - make this more elegant
+  if (item_name == "Plate_diagrams") {
+    pdf(file = plot_filename, width = 10, height = 6)
+  } else if (item_name != "Plate_diagrams") {
+    pdf(file = plot_filename, width = 7, height = 7)
+  }
+  
+  print(separated_list_entries[[item_name]])
+  # See https://stackoverflow.com/a/29834646, accessed 170815
   dev.off()
-
+  
 }
 
 main <- function() {
@@ -543,9 +583,9 @@ main <- function() {
   output_filenames_prefix <- substr(plate_data_filename[1], 1, nchar(plate_data_filename[1])-4)
   
   if (parse_raw_plate_data == TRUE) {
-    cat("Parsing plate data...")
+    cat("Parsing plate data...\n")
     plate_data_merged <- parse_raw_data(plate_data_filename, sample_metadata_filename)
-    cat("Successfully read in plate data and sample naming data.")
+    cat("Successfully read in plate data and sample naming data.\n")
     
     # Export combined data
     merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
@@ -563,51 +603,42 @@ main <- function() {
     }
   }
   
-  
   ##### Process standards and unknowns
-  ### First, split the raw data into multiple sub-tables by date of sampling
+  # First, split the raw data into a list of individual plates
   plate_data_sep <- lapply(unique(plate_data_merged$Plate_number), 
                            function(x) {filter(plate_data_merged, Plate_number == x)})
   names(plate_data_sep) <- unique(plate_data_merged$Plate_number)
   
-  # Generate standards for each Date
-  plate_data_stds <- lapply(names(plate_data_sep), 
-                            function(x) {make_standard_curve(plate_data_sep[[x]])})
-  names(plate_data_stds) <- names(plate_data_sep)
-  
-  # Get concentrations and plot for each Date
-  unknowns_data <- lapply(names(plate_data_sep), 
-                          function(x) {convert_to_concentration(plate_data_sep[[x]], plate_data_stds[[x]])})
-  names(unknowns_data) <- names(plate_data_sep)
-  
-  # Generate and print plate diagrams
-  plate_diagrams <- lapply(names(plate_data_sep), function(x) {visual_check(plate_data_sep[[x]])})
-  plate_digrams_name <- paste(substr(plate_data_filename, 1, nchar(plate_data_filename)-4), "_plate_diagrams.pdf", sep = "")
-
-  pdf(file = plate_digrams_name, width = 10, height = 6)
-  print(plate_diagrams) # See https://stackoverflow.com/a/29834646, accessed 170815
-  dev.off()
-  
+  # Calculate plate data
+  all_plate_data_calculated <- lapply(names(plate_data_sep), 
+                               function(x) {calculate_plate_data(plate_data_sep[[x]])})
+  names(all_plate_data_calculated) <- names(plate_data_sep)
   
   ##### Summarize output
-  summarized_data_list <- summarize_processed_data(plate_data_merged, unknowns_data)
+  # Move each list item into its own sub-list with like kinds
+  separated_list_entries <- lapply(names(all_plate_data_calculated[[1]]), 
+                                   function(x) { subset_list(all_plate_data_calculated, x) })
+  # TODO - consider hard-coding this somewhere at the top. This line is also present in another function.
+  names(separated_list_entries) <- c("Unknowns", "Blanks", "Standards", "Trendlines", "Std_curve_plot", "Std_curve_plot_with_unknowns", "Plate_diagrams")
   
-  # Write summary table
-  write_excel_table(output_filenames_prefix, summarized_data_list)
+  # Clean up output and separate tables from lists (manually!)
+  summarized_data_list <- summarize_processed_data(plate_data_merged, separated_list_entries)
+  summarized_table_list <- summarized_data_list[c(1:4)]
+  summarized_plot_list <- summarized_data_list[c(5:7)]
+  
+  # Write summary Excel table
+  write_excel_table(output_filenames_prefix, summarized_table_list)
     
   # Also export unknowns as TSV
   table_filename_unknowns <- paste(output_filenames_prefix, "_unknowns.tsv", sep = "")
-  write.table(plate_data_unknowns, file = table_filename_unknowns, sep = "\t", col.names = TRUE, row.names = FALSE)
+  write.table(summarized_data_list$Unknowns, file = table_filename_unknowns, sep = "\t", 
+              col.names = TRUE, row.names = FALSE)
   
-  # Make multi-panel standard curve plots, if desired
-  # TODO - define entire output filename as input to the function
-  print_std_curve_plots(unknowns_data, plate_data_filename, 
-                        std_type = "std_plot", file_ending = "_std_curves.pdf")
+  # Print plots
+  lapply(names(summarized_plot_list), function(x) { print_plot_file(summarized_plot_list, x)})
   
-  print_std_curve_plots(unknowns_data, plate_data_filename, 
-                        std_type = "std_plot_with_unknowns", file_ending = "_std_curves_with_samples.pdf")
-  
-  cat("96_well_spec_analysis.R: finished.")
+  cat("96_well_spec_analysis.R: finished.\n\n")
   
 }
 
+main()
