@@ -9,7 +9,7 @@ set -euo pipefail
 
 # Hard-coded variables
 SCRIPT_VERSION="v0.3" # to match git tag
-TARGET_FILES=(example_raw_plate_data_1_plate_diagrams.pdf example_raw_plate_data_1_raw_data.tsv example_raw_plate_data_1_std_curves_with_samples.pdf example_raw_plate_data_1_unknowns.tsv)
+TARGET_FILES=(example_raw_plate_data_1_raw_data.tsv example_raw_plate_data_1_unknowns.tsv)
 
 # If no input is provided, exit out and provide help
 if [ $# == 0 ]
