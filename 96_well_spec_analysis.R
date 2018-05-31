@@ -254,7 +254,7 @@ make_standard_curve <- function(plate_table_blanked) {
     std_names_below_blank_readable <- glue::collapse(std_names_below_blank, sep = ", ")
     
     # Throw a warning
-    warning(paste("Plate_number ", unique(plate_table$Plate_number), ": blank has higher absorbance than ", nrow(stds_below_blank), 
+    warning(paste("Plate_number ", unique(plate_table_blanked$Plate_number), ": blank has higher absorbance than ", nrow(stds_below_blank), 
                   " of the standards (",  std_names_below_blank_readable, "). Will throw out all standards below blank.", sep = ""))
     
     # Remove all standards with absorbance lower than blank
@@ -405,7 +405,7 @@ convert_to_concentration <- function(summarized_unknowns, std_curve_summary) {
     annotation_logticks() +
     xlab("Concentration (uM)") +
     ylab("Absorbance (blanked)") +
-    ggtitle(paste("Plate_number: ", unique(plate_table$Plate_number), sep = ""))
+    ggtitle(paste("Plate_number: ", unique(plate_table_blanked$Plate_number), sep = ""))
   
   # Add on samples to the standard plot
   unk_plot <- std_plot +
