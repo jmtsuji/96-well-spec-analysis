@@ -1,7 +1,7 @@
-# 96 well spectrophotometer data analysis (ferrozine)
-# Copyright Jackson M. Tsuji (Neufeld Lab PhD student), 2017
+# 96 well spectrophotometer data analysis
+# Copyright Jackson M. Tsuji (Neufeld Lab PhD student), 2018
 # Created Nov 10th, 2016
-# Description: Imports and processes data from the 96 well plate reader
+# Description: Imports and processes data from the Neufeld lab 96 well plate reader
 
 VERSION <- "v0.3" # to match git tag
 
@@ -559,7 +559,7 @@ write_excel_table <- function(output_filenames_prefix, summarized_table_list) {
 }
 
 # Description: prints a single PDF file with all plots in the input list (item_name within summarized_plot_list)
-print_plot_file <- function(summarized_plot_list, item_name) {
+print_plot_file <- function(output_filenames_prefix, summarized_plot_list, item_name) {
   
   plot_filename <- paste(output_filenames_prefix, "_", item_name, ".pdf", sep = "")
   
@@ -570,7 +570,7 @@ print_plot_file <- function(summarized_plot_list, item_name) {
     pdf(file = plot_filename, width = 7, height = 7)
   }
   
-  print(separated_list_entries[[item_name]])
+  print(summarized_plot_list[[item_name]])
   # See https://stackoverflow.com/a/29834646, accessed 170815
   dev.off()
   
@@ -604,6 +604,8 @@ main <- function() {
   }
   
   ##### Process standards and unknowns
+  cat("Calculating concentrations...\n")
+  
   # First, split the raw data into a list of individual plates
   plate_data_sep <- lapply(unique(plate_data_merged$Plate_number), 
                            function(x) {filter(plate_data_merged, Plate_number == x)})
@@ -615,6 +617,8 @@ main <- function() {
   names(all_plate_data_calculated) <- names(plate_data_sep)
   
   ##### Summarize output
+  cat("Summarizing output...\n")
+  
   # Move each list item into its own sub-list with like kinds
   separated_list_entries <- lapply(names(all_plate_data_calculated[[1]]), 
                                    function(x) { subset_list(all_plate_data_calculated, x) })
@@ -626,6 +630,7 @@ main <- function() {
   summarized_table_list <- summarized_data_list[c(1:4)]
   summarized_plot_list <- summarized_data_list[c(5:7)]
   
+  cat("Printing summary files...\n")
   # Write summary Excel table
   write_excel_table(output_filenames_prefix, summarized_table_list)
     
@@ -635,7 +640,8 @@ main <- function() {
               col.names = TRUE, row.names = FALSE)
   
   # Print plots
-  lapply(names(summarized_plot_list), function(x) { print_plot_file(summarized_plot_list, x)})
+  lapply(names(summarized_plot_list), function(x) { print_plot_file(output_filenames_prefix, 
+                                                                    summarized_plot_list, x)})
   
   cat("96_well_spec_analysis.R: finished.\n\n")
   
