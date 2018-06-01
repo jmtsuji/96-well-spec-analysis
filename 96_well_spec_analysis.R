@@ -54,6 +54,11 @@ parse_command_line_input <- function() {
   
   opt <- getopt(params)
   
+  # If no inputs files were provided, go to help
+  if ( is.null(opt$plate_data_filenames) && is.null(opt$sample_metadata_filename) && is.null(opt$pre_parsed_data_file) ) {
+    opt$help <- TRUE
+  }
+  
   # If help was called, print help message and exit
   if ( !is.null(opt$help) ) {
     
