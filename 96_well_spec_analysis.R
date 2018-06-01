@@ -6,14 +6,14 @@
 
 #####################################################
 ## User variables: #################################
-RUN_COMMAND_LINE <- FALSE # If selected, all user input here is ignored, and terminal-based input is expected instead.
+RUN_COMMAND_LINE <- TRUE # If selected, all user input here is ignored, and terminal-based input is expected instead.
 
 # Set other user variables here
 if (RUN_COMMAND_LINE == FALSE) {
   setwd("/Users/JTsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
   plate_data_filename <- c("testing/input/example_raw_plate_data.txt") # Raw data from the 96 well plate reader ('column/both' format, with default encoding)
   sample_metadata_filename <- "testing/input/example_sample_metadata.tsv" # Not needed if pre_parsed_data_file == FALSE
-  output_filenames_prefix <- "testing/output_test/test2" # Prefix for output files
+  output_filenames_prefix <- "testing/output_test/example_data" # Prefix for output files
   
   pre_parsed_data_file <- NULL # This is an optional setting to import pre-parsed raw data files (e.g., produced by this script previously) to re-analyze for sample concentrations (e.g., after making custom edits).
   # Set to NULL if you want to process raw files (plate_data_filename, sample_metadata_filename) instead.
@@ -595,26 +595,12 @@ summarize_processed_data <- function(plate_data_merged, separated_list_entries) 
   separated_list_entries[["Standards"]] <- dplyr::bind_rows(separated_list_entries[["Standards"]])
   separated_list_entries[["Trendlines"]] <- dplyr::bind_rows(separated_list_entries[["Trendlines"]])
   
-  # Retrieve any additional metadata info provided by the user
-  # Remove irrelevant information
-  cols_to_remove <- c("Well", "Absorbance", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
-  cols_nums_to_remove <- match(cols_to_remove, colnames(plate_data_merged))
-  extra_sample_info <- unique(plate_data_merged[,-(cols_nums_to_remove)])
-  merging_cols <- c("Plate_number", "Sample_name", "Replicate", "Treatment") # to use with join later
-  
-  # Summarize the unknowns (samples) data and re-order for clarity
-  separated_list_entries$Unknowns <- separated_list_entries$Unknowns[,c(5,3,6,2,4,1,7,8,9,10)]
-  # Join in other sample info provided by the user
-  separated_list_entries$Unknowns <- dplyr::inner_join(separated_list_entries$Unknowns, extra_sample_info, by = merging_cols)
-  
-  # Summarize standards and re-order for clarity
-  separated_list_entries$Standards <- separated_list_entries$Standards[,c(5,3,4,2,1,6,7)]
-  
-  # Summarize blanks and re-order for clarity
-  separated_list_entries$Blanks <- separated_list_entries$Blanks[,c(3,1,2,4,5)]
-  
-  # Summarize trendline and re-order for clarity
-  separated_list_entries$Trendlines <- separated_list_entries$Trendlines[,c(4,2,1,3)]
+  # # Re-order columns for clarity
+  # # TODO - get rid of this and order properly in the first place
+  # separated_list_entries$Unknowns <- separated_list_entries$Unknowns[,c(5,3,6,2,4,1,7,8,9,10)]
+  # separated_list_entries$Standards <- separated_list_entries$Standards[,c(5,3,4,2,1,6,7)]
+  # separated_list_entries$Blanks <- separated_list_entries$Blanks[,c(3,1,2,4,5)]
+  # separated_list_entries$Trendlines <- separated_list_entries$Trendlines[,c(4,2,1,3)]
   
   return(separated_list_entries)
   
