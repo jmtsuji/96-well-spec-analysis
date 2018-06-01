@@ -184,7 +184,7 @@ parse_input_file <- function(file_name) {
 }
 
 # Description: adds sample metadata to the parsed absorbance data
-add_sample_metadata <- function(all_plate_data, metadata_filename) {
+add_sample_metadata <- function(plate_data, metadata_filename) {
   ## Import sample order data
   plate_order <- read.table(metadata_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   
@@ -196,14 +196,14 @@ add_sample_metadata <- function(all_plate_data, metadata_filename) {
   }
   
   ## Check if the sample naming and plate abosorbance data have the same number of plates, and throw a warning if not
-  if (identical(unique(plate_order$Plate_number), unique(all_plate_data$Plate_number)) == FALSE) {
+  if (identical(unique(plate_order$Plate_number), unique(plate_data$Plate_number)) == FALSE) {
     warning("Number of plates in raw data files and sample naming sheet do not match. NA values will be placed where there are unmatched plates and may cause unexpected behaviour.")
   }
   
   ## Join sample order data with absorbance data
-  all_plate_data_merged <- dplyr::full_join(all_plate_data, plate_order, by = c("Well","Plate_number"))
+  plate_data_merged <- dplyr::full_join(plate_data, plate_order, by = c("Well","Plate_number"))
   
-  return(all_plate_data_merged)
+  return(plate_data_merged)
 }
 
 # Description: fully parses and integrates raw plate absorbance data and metadata
@@ -574,11 +574,11 @@ calculate_plate_data <- function(plate_table) {
 
 # Description: Given a nested list with identical structure across level 1, moves the list item of identical 
 # name or position from all lists into their own primary list
-subset_list <- function(all_plate_data_calculated, item) {
+subset_list <- function(plate_data_calculated, item) {
   
-  similar_items <- lapply(names(all_plate_data_calculated), 
-                          function(x) { return(all_plate_data_calculated[[x]][[item]])})
-  names(similar_items) <- names(all_plate_data_calculated)
+  similar_items <- lapply(names(plate_data_calculated), 
+                          function(x) { return(plate_data_calculated[[x]][[item]])})
+  names(similar_items) <- names(plate_data_calculated)
   
   return(similar_items)
 }
@@ -726,16 +726,16 @@ main <- function() {
   names(plate_data_sep) <- unique(plate_data_merged$Plate_number)
   
   # Calculate plate data
-  all_plate_data_calculated <- lapply(names(plate_data_sep), 
+  plate_data_calculated <- lapply(names(plate_data_sep), 
                                       function(x) {calculate_plate_data(plate_data_sep[[x]])})
-  names(all_plate_data_calculated) <- names(plate_data_sep)
+  names(plate_data_calculated) <- names(plate_data_sep)
   
   ##### Summarize output
   cat("Summarizing output...\n")
   
   # Move each list item into its own sub-list with like kinds
-  separated_list_entries <- lapply(names(all_plate_data_calculated[[1]]), 
-                                   function(x) { subset_list(all_plate_data_calculated, x) })
+  separated_list_entries <- lapply(names(plate_data_calculated[[1]]), 
+                                   function(x) { subset_list(plate_data_calculated, x) })
   # TODO - consider hard-coding this somewhere at the top. This line is also present in another function.
   names(separated_list_entries) <- c("Unknowns", "Blanks", "Standards", "Trendlines", "Std_curve_plot", "Std_curve_plot_with_unknowns", "Plate_diagrams")
   
