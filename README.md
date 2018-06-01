@@ -6,12 +6,14 @@ Copyright Jackson M. Tsuji, 2017
 **NOTE: this script is in development and should not be used for important analyses without consulting the script author (Jackson M. Tsuji).
 
 # Dependencies (R packages)
+* getopt
+* glue
 * [`plyr`](https://cran.r-project.org/web/packages/plyr/index.html)
 * [`dplyr`](http://dplyr.tidyverse.org)
 * [`ggplot2`](http://ggplot2.tidyverse.org)
 * [`reshape2`](https://cran.r-project.org/web/packages/reshape2/index.html)
 * [`xlsx`](https://cran.r-project.org/web/packages/xlsx/index.html)
-* Can be installed by running: `install.packages(c("plyr", "dplyr", "ggplot2", "reshape2", "xlsx"), dependencies = TRUE)`
+* Can be installed by running: `install.packages(c("getopt", "glue", "plyr", "dplyr", "ggplot2", "reshape2", "xlsx"), dependencies = TRUE)`
 
 # Usage
 This script is ideally run within a console (e.g., RStudio) rather than in command line, because parameters are designed to be modified in the "User variables" section in the first few lines of the code before each run. The input is raw, exported 96 well plate absorbance data (TXT format; see below) from the Neufeld lab 96 well plate reader. Analyzed output can be visualized downstream using a method of your choice (as the visualization method depends on your study design and goals).
