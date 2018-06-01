@@ -341,11 +341,11 @@ make_standard_curve <- function(plate_table_blanked) {
 summarize_unknowns <- function(plate_table_blanked) {
   
   ## Summarize standard curve data
-  unk_raw <- filter(plate_table_blanked, Sample_type == "Unknown")
+  unk_raw <- dplyr::filter(plate_table_blanked, Sample_type == "Unknown")
   # Group by all variables supplied by user, in case this helps to split samples apart for the desired factorial approach
-  unk_grouped <- group_by_all(unk_raw)
+  unk_grouped <- dplyr::group_by_at(unk_raw, colnames(unk_raw)[!(colnames(unk_raw) %in% c("Well", "Absorbance", "Absorbance_blanked", "Standard_conc"))])
   # unk_grouped <- group_by(unk_raw, Blanking_group, Treatment, Sample_name, Dilution_factor, Plate_number, Replicate)
-  summarized_unknowns <- summarise(unk_grouped, Ave_abs_blanked = mean(Absorbance_blanked), StdDev_abs_blanked = sd(Absorbance_blanked))
+  summarized_unknowns <- dplyr::summarise(unk_grouped, Ave_abs_blanked = mean(Absorbance_blanked), StdDev_abs_blanked = sd(Absorbance_blanked))
   
   # Throw a warning if the blanking group does not exist for an unknown.
   if (anyNA(summarized_unknowns$Ave_abs_blanked) == TRUE) {
