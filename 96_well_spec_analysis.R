@@ -21,14 +21,14 @@ if (RUN_COMMAND_LINE == FALSE) {
 #####################################################
 ## Load required packages: ##########################
 # TODO - add check function to see if these have been installed, and exit if not
-library(getopt)
-library(glue)
-library(plyr)
-suppressMessages(library(dplyr))
-library(ggplot2)
-library(grid)
-library(reshape2)
-library(xlsx)
+library(getopt, quietly = TRUE, warn.conflicts = FALSE)
+library(glue, quietly = TRUE, warn.conflicts = FALSE)
+library(plyr, quietly = TRUE, warn.conflicts = FALSE)
+suppressMessages(library(dplyr, quietly = TRUE, warn.conflicts = FALSE))
+library(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
+library(grid, quietly = TRUE, warn.conflicts = FALSE)
+library(reshape2, quietly = TRUE, warn.conflicts = FALSE)
+library(xlsx, quietly = TRUE, warn.conflicts = FALSE)
 #####################################################
 
 SCRIPT_VERSION <- "v0.3" # to match git tag
