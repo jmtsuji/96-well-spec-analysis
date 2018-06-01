@@ -298,13 +298,16 @@ blank_absorbances <- function(plate_table, summarized_blanks) {
   # Remove sample name column from blank to avoid issue in joining
   summarized_blanks$Sample_name <- NULL
   
-  # Join tables
+  # Join tables so that the blank absorbance is applied as a column for all entries with the same blanking group
   plate_table_blanked <- dplyr::left_join(plate_table, summarized_blanks, by = c("Plate_number", "Blanking_group"))
   
   # Blank tables
   plate_table_blanked$Absorbance_blanked <- plate_table_blanked$Absorbance - plate_table_blanked$Blank_ave_abs
   
-  # TODO - consider removing some unnecessary columns introduced by the join
+  # Remove unnecessary columns introduced during blanking
+  plate_table_blanked$Blank_ave_abs <- NULL
+  plate_table_blanked$Blank_stdDev_abs <- NULL
+  
   return(plate_table_blanked)
   
 }
