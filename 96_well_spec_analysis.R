@@ -183,56 +183,13 @@ parse_input_file <- function(file_name) {
   return(plate_data)
 }
 
-# Description: merges all absorbance data into a single table
-# (requires plate numbering adjustments)
-merge_input_files_data <- function(all_plates_list) {
-  # Internal dependency functions: none
-  
-  # Determine total number of plates and renumber plates to match
-  # Start with an empty vector and add plates in a loop
-  total_plate_number <- 0
-  for (i in 1:length(all_plates_list)) {
-    # Test data
-    # i <- 1
-    
-    # Get the plate number up to this point in the loop
-    current_plate_number <- total_plate_number
-    
-    # Get the numbers of the plates from the file being examined
-    plate_nums <- unique(all_plates_list[[i]]$Plate_number)
-    plates_in_file <- length(plate_nums)
-    
-    # Determine new plate numbers to assign based on current position in the loop
-    new_plate_nums <- seq(from = (current_plate_number + 1), to = (current_plate_number + plates_in_file))
-    
-    # Re-number the plates in that plate file
-    all_plates_list[[i]]$Plate_number <- plyr::mapvalues(all_plates_list[[i]]$Plate_number, from = plate_nums, to = new_plate_nums)
-    
-    # Add to the total number of plates
-    total_plate_number <- total_plate_number + plates_in_file
-  }
-  
-  all_plate_data <- dplyr::bind_rows(all_plates_list)
-  
-  # Check number of plates found in 'for loop' matches the number evident after merging
-  final_plate_number <- length(unique(all_plate_data$Plate_number))
-  if (total_plate_number != final_plate_number) {
-    stop("ERROR: problem encountered in plate renumbering during file import. Exiting out.")
-  } else {
-    cat(paste("Imported data from a total of ", final_plate_number, " plate(s).\n", sep = ""))
-  }
-  
-  return(all_plate_data)
-}
-
 # Description: adds sample metadata to the parsed absorbance data
-# TODO - change this so that there is one metadata sheet for each plate input file, to avoid confusion.
 add_sample_metadata <- function(all_plate_data, metadata_filename) {
   ## Import sample order data
   plate_order <- read.table(metadata_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   
   # Check if required columns exist. If they do not, exit early.
-  required_colnames <- c("Plate_number", "Well", "Sample_name", "Replicate", "Sample_type", "Treatment", "Blanking_group", "Dilution_factor", "Standard_conc")
+  required_colnames <- c("Plate_number", "Well", "Sample_name", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
   req_col_test <- unique(required_colnames %in% colnames(plate_order))
   if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
     stop("ERROR: Missing required column in sample naming file (see README.md). Exiting...")
@@ -252,24 +209,16 @@ add_sample_metadata <- function(all_plate_data, metadata_filename) {
 # Description: fully parses and integrates raw plate absorbance data and metadata
 parse_raw_data <- function(plate_data_filename, sample_metadata_filename) {
   
-  # Determine number of files provided
-  number_of_files <- length(plate_data_filename)
-  if (number_of_files == 1) {
-    cat(paste("Loading data from ", number_of_files, " file...\n", sep = ""))
-  } else if (number_of_files > 1) {
-    cat(paste("Loading data from ", number_of_files, " files in sequential order...\n", sep = ""))
-  } else {
-    stop("ERROR: no input files detected")
+  # Error if nothing provided for input
+  if (length(plate_data_filename) == 0) {
+    stop("ERROR: no input raw plate data file detected")
   }
   
-  # Parse each input file
-  all_files_plate_data <- lapply(plate_data_filename, function(x) { parse_input_file(x) })
-  
-  # Combine into a single table
-  all_files_plate_data <- merge_input_files_data(all_files_plate_data)
+  # Parse input file
+  plate_data <- parse_input_file(plate_data_filename)
   
   # Add sample naming data
-  plate_data_merged <- add_sample_metadata(all_files_plate_data, sample_metadata_filename)
+  plate_data_merged <- add_sample_metadata(plate_data, sample_metadata_filename)
   
   return(plate_data_merged)
   
@@ -730,7 +679,7 @@ main <- function() {
   # Startup messages
   cat(paste("Running 96_well_spec_analysis.R, version: ", SCRIPT_VERSION, "\n\n", sep = ""))
   if (input_mode == "raw") {
-    cat(paste("Plate data filenames:", plate_data_filename, "\n"))
+    cat(paste("Plate data filename:", plate_data_filename, "\n"))
     cat(paste("Metadata filename:", sample_metadata_filename, "\n"))
     cat(paste("Pre-parsed plate data filename:", "NOT APPLICABLE", "\n"))
   } else if (input_mode == "pre-parsed") {
@@ -745,9 +694,6 @@ main <- function() {
   ##### Import plate data
   # Take different courses of action depending on whether input_mode is 'raw' or 'pre-parsed'
   if (input_mode == "raw") {
-    
-    # First, in case the user provided comma-separated plate names, separate those names into individual entries
-    plate_data_filename <- trimws(unlist(strsplit(plate_data_filename, split = ",")))
     
     cat("Parsing plate data...\n")
     plate_data_merged <- parse_raw_data(plate_data_filename, sample_metadata_filename)
