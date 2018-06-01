@@ -234,7 +234,7 @@ summarize_blanks <- function(plate_table) {
   ### Summarize blanks
   blanks_raw <- filter(plate_table, Sample_type == "Blank")
   # Group by all variables supplied by user, in case this helps to split samples apart for the desired factorial approach
-  blanks_grouped <- dplyr::group_by_at(blanks_raw, colnames(blanks_raw)[!(colnames(blanks_raw) %in% c("Well", "Absorbance", "Absorbance_blanked", "Standard_conc"))])
+  blanks_grouped <- dplyr::group_by_at(blanks_raw, colnames(blanks_raw)[!(colnames(blanks_raw) %in% c("Well", "Absorbance", "Standard_conc"))])
   blanks_summ <- summarise(blanks_grouped, Blank_ave_abs = mean(Absorbance), Blank_stdDev_abs = sd(Absorbance))
   
   # Throw a warning if SD > 10% of mean
