@@ -11,11 +11,15 @@ RUN_COMMAND_LINE <- TRUE # If selected, all user input here is ignored, and term
 # Set other user variables here
 if (RUN_COMMAND_LINE == FALSE) {
   setwd("/Users/JTsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
-  parse_raw_plate_data <- TRUE # Set TRUE if you need to parse raw plate data. Will parse, then exit.
-  plate_data_filename <- c("testing/input/example_raw_plate_data_1.txt", "testing/input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames, OR comma separate
-  # If parse_raw_plate_data == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
-  sample_metadata_filename <- "testing/input/example_sample_metadata.tsv" # Not needed if parse_raw_plate_data == FALSE
-  force_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
+  plate_data_filenames <- c("testing/input/example_raw_plate_data_1.txt", "testing/input/example_raw_plate_data_2.txt") # Add in a vector if using multiple filenames, OR comma separate
+  # If pre_parsed_data_file == FALSE, then this should be COMBINED plate and sample order data as output by this script when parsing
+  sample_metadata_filename <- "testing/input/example_sample_metadata.tsv" # Not needed if pre_parsed_data_file == FALSE
+  pre_parsed_data_file <- NULL # This is an optional setting to import pre-parsed raw data files (e.g., produced by this script previously) to re-analyze for sample concentrations (e.g., after making custom edits).
+                               # Set to NULL if you want to process raw files (plate_data_filenames, sample_metadata_filename) instead.
+                               # Otherwise, set plate_data_filenames and sample_metadata_filename to NULL, then set this variable to the name of the pre-parsed raw data file you want to re-analyze.
+                               # The script WILL NOT RUN if plate_data_filenames, sample_metadata_filename, and pre_parsed_data_file are all set
+  
+  force_curve_through_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
 }
 
 #####################################################
@@ -36,16 +40,16 @@ SCRIPT_VERSION <- "v0.3" # to match git tag
 parse_command_line_input <- function() {
   ### Grab arguments
   # Arguments required:
-  # -i input plate_data_filename
+  # -i input plate_data_filenames
   # -m input sample_metadata_filename
-  # -p parse_raw_plate_data
-  # -z force_zero
+  # -p pre_parsed_data_file
+  # -z force_curve_through_zero
   # -o output_filenames_prefix (for output files)
-  params <- matrix(c('plate_data_filenames', 'i', 1, "character",
-                     'sample_metadata_filename', 'm', 1, "character",
-                     'parse_raw_plate_data', 'p', 2, "character",
-                     'force_zero', 'z', 2, "character",
+  params <- matrix(c('plate_data_filenames', 'i', 2, "character",
+                     'sample_metadata_filename', 'm', 2, "character",
                      'output_filenames_prefix', 'o', 2, "character",
+                     'pre_parsed_data_file', 'p', 2, "character",
+                     'force_curve_through_zero', 'z', 2, "character",
                      'help', 'h', 2, "character"), byrow=TRUE, ncol=4)
   
   opt <- getopt(params)
@@ -70,20 +74,37 @@ parse_command_line_input <- function() {
     quit(status = 1)
   }
   
-  # Exit if required inputs are not provided
-  if ( is.null(opt$plate_data_filenames) ) {
-    stop("Input plate data filepaths required. Try -h for help message.")
+  # Determine if a plate file and metadata file were provided versus a pre-parsed file
+  if (is.null(opt$plate_data_filenames) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) {
+    input_mode <- "raw"
+  } else if (is.null(opt$pre_parsed_data_file) == FALSE) {
+    input_mode <- "pre-parsed"
+  } else if ((is.null(opt$plate_data_filenames) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) && is.null(opt$pre_parsed_data_file) == FALSE ) {
+    stop("ERROR: Cannot have the '-p' flag set at the same time as '-i' or '-m'. Exiting...")
+  } else {
+    stop("Something unexpected went wrong related to the '-p', '-i', and '-m' flags being set improperly. Exiting...")
   }
-  if ( is.null(opt$sample_metadata_filename) ) {
-    stop("Input sample metdata filepath required. Try -h for help message.")
+  
+  # Exit if required input tables are not provided (different for different input modes)
+  if (input_mode == "raw") {
+    if ( is.null(opt$plate_data_filenames) ) {
+      stop("Input plate data filepaths required. Try -h for help message.")
+    }
+    if ( is.null(opt$sample_metadata_filename) ) {
+      stop("Input sample metdata filepath required. Try -h for help message.")
+    }
+  } else if (input_mode == "pre-parsed") {
+    if ( is.null(opt$pre_parsed_data_file) ) {
+      stop("Input pre-parsed absprbance/metadata table filepath required. Try -h for help message.")
+    }
+  } else {
+    stop("Something unexpected went wrong related to the '-p', '-i', and '-m' flags being set improperly. Exiting...")
   }
   
   # Provide defaults for optional inputs if not provided
-  if ( is.null(opt$parse_raw_plate_data) ) {
-    opt$parse_raw_plate_data <- TRUE
-  }
-  if ( is.null(opt$force_zero) ) {
-    opt$force_zero <- TRUE
+  
+  if ( is.null(opt$force_curve_through_zero) ) {
+    opt$force_curve_through_zero <- TRUE
   }
   if ( is.null(opt$output_filenames_prefix) ) {
     opt$output_filenames_prefix <- NA # Signal to determine properly later
@@ -91,10 +112,10 @@ parse_command_line_input <- function() {
   
   # Make variables from provided input and save as global variables (<<-)
   # TODO - make CAPS
-  plate_data_filename <<- opt$plate_data_filenames
+  plate_data_filenames <<- opt$plate_data_filenames
   sample_metadata_filename <<- opt$sample_metadata_filename
-  parse_raw_plate_data <<- opt$parse_raw_plate_data
-  force_zero <<- opt$force_zero
+  pre_parsed_data_file <<- opt$pre_parsed_data_file
+  force_curve_through_zero <<- opt$force_curve_through_zero
   output_filenames_prefix <<- opt$output_filenames_prefix
   
 }
@@ -225,10 +246,10 @@ add_sample_metadata <- function(all_plate_data, metadata_filename) {
 }
 
 # Description: fully parses and integrates raw plate absorbance data and metadata
-parse_raw_data <- function(plate_data_filename, sample_metadata_filename) {
+parse_raw_data <- function(plate_data_filenames, sample_metadata_filename) {
   
   # Determine number of files provided
-  number_of_files <- length(plate_data_filename)
+  number_of_files <- length(plate_data_filenames)
   if (number_of_files == 1) {
     cat(paste("Loading data from ", number_of_files, " file...\n", sep = ""))
   } else if (number_of_files > 1) {
@@ -238,7 +259,7 @@ parse_raw_data <- function(plate_data_filename, sample_metadata_filename) {
   }
   
   # Parse each input file
-  all_files_plate_data <- lapply(plate_data_filename, function(x) { parse_input_file(x) })
+  all_files_plate_data <- lapply(plate_data_filenames, function(x) { parse_input_file(x) })
   
   # Combine into a single table
   all_files_plate_data <- merge_input_files_data(all_files_plate_data)
@@ -324,14 +345,14 @@ make_standard_curve <- function(plate_table_blanked) {
   }
   
   # Make linear trendline
-  if (force_zero == TRUE) {
+  if (force_curve_through_zero == TRUE) {
     trendline <- lm(Ave_abs_blanked ~ 0 + Standard_conc, data = std_summ) # Forcing through origin: https://stackoverflow.com/a/18947967, accessed 170815
   } else {
     trendline <- lm(Ave_abs_blanked ~ Standard_conc, data = std_summ)
   }
   
   # Summarize some trendline values
-  if (force_zero == TRUE) {
+  if (force_curve_through_zero == TRUE) {
     trendline_coeff <- c(0, coefficients(trendline)) # to make this match what the coefficients look like when not fixed to origin
   } else {
     trendline_coeff <- coefficients(trendline)
@@ -642,47 +663,68 @@ main <- function() {
   # Run command line version if requested
   if (RUN_COMMAND_LINE == TRUE) {
     parse_command_line_input()
+  } else {
+    # Like done in parse_command_line_input, determine if the inputs are pre-parsed or not
+    if (is.null(opt$plate_data_filenames) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) {
+      input_mode <- "raw"
+    } else if (is.null(opt$pre_parsed_data_file) == FALSE) {
+      input_mode <- "pre-parsed"
+    } else if ((is.null(opt$plate_data_filenames) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) && is.null(opt$pre_parsed_data_file) == FALSE ) {
+      stop("ERROR: Cannot have pre_parsed_data_file set at the same time as 'plate_data_filenames' or 'sample_metadata_filename'. Exiting...")
+    } else {
+      stop("Something unexpected went wrong related to your input table variables. Exiting...")
+    }
   }
   
   # Assign default naming prefix if not assigned by user
-  if (is.na(output_filenames_prefix) == TRUE) {
-    output_filenames_prefix <- substr(plate_data_filename[1], 1, nchar(plate_data_filename[1])-4)
+  if (is.na(output_filenames_prefix) == TRUE | is.null(output_filenames_prefix) == TRUE) {
+    output_filenames_prefix <- substr(plate_data_filenames[1], 1, nchar(plate_data_filenames[1])-4)
   }
   
   # Startup messages
   cat(paste("Running 96_well_spec_analysis.R, version: ", SCRIPT_VERSION, "\n\n", sep = ""))
-  cat(paste("Plate data filenames:", plate_data_filename, "\n"))
-  cat(paste("Metadata filename:", sample_metadata_filename, "\n"))
+  if (input_mode == "raw") {
+    cat(paste("Plate data filenames:", plate_data_filenames, "\n"))
+    cat(paste("Metadata filename:", sample_metadata_filename, "\n"))
+    cat(paste("Pre-parsed plate data filename:", "NOT APPLICABLE", "\n"))
+  } else if (input_mode == "pre-parsed") {
+    cat(paste("Plate data filenames:", "NOT APPLICABLE", "\n"))
+    cat(paste("Metadata filename:", "NOT APPLICABLE", "\n"))
+    cat(paste("Use pre-parsed plate data instead?:", pre_parsed_data_file, "\n"))
+  }
   cat(paste("Prefix for output files:", output_filenames_prefix, "\n"))
-  cat(paste("Parse raw input plate data?:", parse_raw_plate_data, "\n"))
-  cat(paste("Force standard curves through zero?:", force_zero, "\n"))
+  cat(paste("Force standard curves through zero?:", force_curve_through_zero, "\n"))
   cat("\n")
   
   ##### Import plate data
-  # First, in case the user provided comma-separated plate names, separate those names into individual entries
-  plate_data_filename <- trimws(unlist(strsplit(plate_data_filename, split = ",")))
+  # Take different courses of action depending on whether input_mode is 'raw' or 'pre-parsed'
+  if (input_mode == "raw") {
+    
+      # First, in case the user provided comma-separated plate names, separate those names into individual entries
+      plate_data_filenames <- trimws(unlist(strsplit(plate_data_filenames, split = ",")))
+      
+      cat("Parsing plate data...\n")
+      plate_data_merged <- parse_raw_data(plate_data_filenames, sample_metadata_filename)
+      cat("Successfully read in plate data and sample naming data.\n")
+      
+      # Export combined data
+      merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
+      write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
   
-  if (parse_raw_plate_data == TRUE) {
-    cat("Parsing plate data...\n")
-    plate_data_merged <- parse_raw_data(plate_data_filename, sample_metadata_filename)
-    cat("Successfully read in plate data and sample naming data.\n")
+    } else if (input_mode == "pre-parsed") {
     
-    # Export combined data
-    merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
-    write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
-    
-  } else {
-    # Read in pre-merged plate/sample data
-    plate_data_merged <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
-    
-    # Check if required columns exist. If they do not, exit early.
-    required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Replicate", "Sample_type", "Treatment", "Blanking_group", "Dilution_factor", "Standard_conc")
-    req_col_test <- unique(required_colnames %in% colnames(plate_data_merged))
-    if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
-      stop("ERROR: Missing required table column (should include plate absorbance data and sample naming data; see README.md). Exiting...")
-    }
+      # Read in pre-merged plate/sample data
+      plate_data_merged <- read.table(plate_data_filenames, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+      
+      # Check if required columns exist. If they do not, exit early.
+      required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
+      req_col_test <- unique(required_colnames %in% colnames(plate_data_merged))
+      if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
+        stop(paste("ERROR: Missing at least one required table column; see README.md. You need at least: '", glue::collapse(required_colnames, sep = ", ") ,"'. Exiting...", sep = ""))
+      }
+      
   }
-  
+    
   ##### Process standards and unknowns
   cat("Calculating concentrations...\n")
   
