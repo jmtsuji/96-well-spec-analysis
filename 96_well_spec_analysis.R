@@ -6,13 +6,15 @@
 
 #####################################################
 ## User variables: #################################
-RUN_COMMAND_LINE <- TRUE # If selected, all user input here is ignored, and terminal-based input is expected instead.
+RUN_COMMAND_LINE <- FALSE # If selected, all user input here is ignored, and terminal-based input is expected instead.
 
 # Set other user variables here
 if (RUN_COMMAND_LINE == FALSE) {
   setwd("/Users/JTsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
-  plate_data_filename <- c("testing/input/example_raw_plate_data_1.txt") # Raw data from the 96 well plate reader ('column/both' format, with default encoding)
+  plate_data_filename <- c("testing/input/example_raw_plate_data.txt") # Raw data from the 96 well plate reader ('column/both' format, with default encoding)
   sample_metadata_filename <- "testing/input/example_sample_metadata.tsv" # Not needed if pre_parsed_data_file == FALSE
+  output_filenames_prefix <- "testing/output_test/test2" # Prefix for output files
+  
   pre_parsed_data_file <- NULL # This is an optional setting to import pre-parsed raw data files (e.g., produced by this script previously) to re-analyze for sample concentrations (e.g., after making custom edits).
   # Set to NULL if you want to process raw files (plate_data_filename, sample_metadata_filename) instead.
   # Otherwise, set plate_data_filename and sample_metadata_filename to NULL, then set this variable to the name of the pre-parsed raw data file you want to re-analyze.
@@ -116,6 +118,7 @@ parse_command_line_input <- function() {
   
   # Make variables from provided input and save as global variables (<<-)
   # TODO - make CAPS
+  input_mode <<- input_mode
   plate_data_filename <<- opt$plate_data_filename
   sample_metadata_filename <<- opt$sample_metadata_filename
   pre_parsed_data_file <<- opt$pre_parsed_data_file
@@ -660,11 +663,11 @@ main <- function() {
     parse_command_line_input()
   } else {
     # Like done in parse_command_line_input, determine if the inputs are pre-parsed or not
-    if (is.null(opt$plate_data_filename) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) {
+    if (is.null(plate_data_filename) == FALSE | is.null(sample_metadata_filename) == FALSE) {
       input_mode <- "raw"
-    } else if (is.null(opt$pre_parsed_data_file) == FALSE) {
+    } else if (is.null(pre_parsed_data_file) == FALSE) {
       input_mode <- "pre-parsed"
-    } else if ((is.null(opt$plate_data_filename) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) && is.null(opt$pre_parsed_data_file) == FALSE ) {
+    } else if ((is.null(plate_data_filename) == FALSE | is.null(sample_metadata_filename) == FALSE) && is.null(pre_parsed_data_file) == FALSE ) {
       stop("ERROR: Cannot have pre_parsed_data_file set at the same time as 'plate_data_filename' or 'sample_metadata_filename'. Exiting...")
     } else {
       stop("Something unexpected went wrong related to your input table variables. Exiting...")
