@@ -1,4 +1,4 @@
-#!/usr/bin/env RScript
+#!/usr/bin/env Rscript
 # 96 well spectrophotometer data analysis
 # Copyright Jackson M. Tsuji (Neufeld Lab PhD student), 2018
 # Created Nov 10th, 2016
