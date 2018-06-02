@@ -6,7 +6,7 @@
 
 #####################################################
 ## User variables: #################################
-RUN_COMMAND_LINE <- FALSE # If selected, all user input here is ignored, and terminal-based input is expected instead.
+RUN_COMMAND_LINE <- TRUE # If selected, all user input here is ignored, and terminal-based input is expected instead.
 
 # Set other user variables here
 if (RUN_COMMAND_LINE == FALSE) {
@@ -248,19 +248,25 @@ summarize_blanks <- function(plate_table) {
 }
 
 # Description: blanks the absorbances of all standards/samples
-# Return: data table with the blanked absorbances
+# Return: data table with the blanked absorbances as 'Absorbance_blanked' (column)
 blank_absorbances <- function(plate_table, summarized_blanks) {
   
   # Remove selected columns from blank table ahead of time to avoid issues during the left join
   summarized_blanks$Sample_name <- NULL
+  cols_to_remove <- c("Sample_name", "Replicate", "Sample_type", "Dilution_factor")
+  cols_to_remove_logical <- !colnames(summarized_blanks) %in% cols_to_remove
+  summarized_blanks <- summarized_blanks[,cols_to_remove_logical]
   
   # Join tables so that the blank absorbance is applied as a column for all entries with the same blanking group
-  plate_table_blanked <- dplyr::left_join(plate_table, summarized_blanks, by = c("Plate_number", "Blanking_group"))
+  # Join by all columns except c("Blank_ave_abs", "Blank_stdDev_abs"), which will added to the blanked table
+  non_join_cols_logical <- !(colnames(summarized_blanks) %in% c("Blank_ave_abs", "Blank_stdDev_abs"))
+  join_cols <- colnames(summarized_blanks)[non_join_cols_logical]
+  plate_table_blanked <- dplyr::left_join(plate_table, summarized_blanks, by = join_cols)
   
-  # Blank tables
+  # Blank the absorbances
   plate_table_blanked$Absorbance_blanked <- plate_table_blanked$Absorbance - plate_table_blanked$Blank_ave_abs
   
-  # Remove unnecessary columns introduced during blanking
+  # Now that blanking is done, remove unnecessary columns introduced during blanking
   plate_table_blanked$Blank_ave_abs <- NULL
   plate_table_blanked$Blank_stdDev_abs <- NULL
   
