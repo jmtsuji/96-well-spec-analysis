@@ -5,11 +5,10 @@ set -euo pipefail
 # Neufeld lab, University of Waterloo, Canada
 # Created May 31, 2018
 # Description: Runs automated test of 96_well_spec_analysis.R
-# **Early development version. You must run the R script with "FOR TESTING" variables before running this script.
 
 # Hard-coded variables
-SCRIPT_VERSION="v0.3" # to match git tag
-TARGET_FILES=(example_raw_plate_data_1_raw_data.tsv example_raw_plate_data_1_unknowns.tsv)
+SCRIPT_VERSION="v0.2.1-dev" # to match git tag
+TARGET_FILES=(example_raw_data.tsv example_unknowns.tsv)
 
 # If no input is provided, exit out and provide help
 if [ $# == 0 ]
@@ -17,11 +16,10 @@ if [ $# == 0 ]
 	printf "$(basename $0): Runs automated test of 96_well_spec_analysis.R - simple check of md5 hashes for key output files.\n"
 	printf "Version: ${SCRIPT_VERSION}\n"
 	printf "Contact Jackson M. Tsuji (jackson.tsuji@uwaterloo.ca) for bug reports or feature requests.\n\n"
-	printf "Usage: $(basename $0) known_output_md5_dir test_output_dir\n\n"
+	printf "Usage: $(basename $0) repo_directory\n\n"
 	printf "Usage details:\n"
-	printf "1. known_output_md5_dir: Path to the directory containing the md5sum's of the 'proper' script outputs. This directory is provided in the git repo at 'testing/output_known_md5'.\n"
-	printf "2. test_output_dir: Path to the directory containing the output files (that you want to test) from running the R script.\n\n"
-	printf "NOTE: base name of the output files MUST be 'example_raw_plate_data_1'. This script will check:\n"
+	printf "1. repo_directory: the path to the base directory containing the cloned/downloaded git repo (this script comes inside that folder).\n\n"
+	printf "NOTE: This script will check MD5 hashes of:\n"
 
 	for file in ${TARGET_FILES[@]}; do
 		printf "* ${file}\n"
@@ -31,22 +29,25 @@ if [ $# == 0 ]
 	exit 1
 fi
 
-# Set variables from user input:
-MD5_DIR=$1
-TEST_DIR=$2
+# Set variable from user input
+WORK_DIR=$1
+
+# Hard-coded extensions of user-supplied variable
+MD5_DIR=${WORK_DIR}/testing/output_known_md5
+TEST_DIR=${WORK_DIR}/testing/output_test
 
 function test_inputs {
 	# Description: tests that provided folders and files exist in the proper configuration
 	# GLOBAL params: ${MD5_DIR}; ${TEST_DIR}; ${TARGET_FILES}
 	# Return: none
 	
-	if [ ! -d ${MD5_DIR} ]; then
-		echo "ERROR: Cannot find md5sum directory at '${MD5_DIR}'. Exiting..."
+	if [ ! -d ${WORK_DIR} ]; then
+		echo "ERROR: Cannot find user-specified directory at '${WORK_DIR}'. Exiting..."
 		exit 1
 	fi
-	
-	if [ ! -d ${TEST_DIR} ]; then
-		echo "ERROR: Cannot find test output directory at '${TEST_DIR}'. Exiting..."
+
+	if [ ! -d ${MD5_DIR} ]; then
+		echo "ERROR: Cannot find md5sum directory at '${MD5_DIR}'. Exiting..."
 		exit 1
 	fi
 	
@@ -56,15 +57,15 @@ function test_inputs {
 			exit 1
 		fi
 	done
-	
-	for file in ${TARGET_FILES[@]}; do
-		if [ ! -f ${TEST_DIR}/${file} ]; then
-			echo "ERROR: Cannot find md5 file '${file}' in '${TEST_DIR}'. Exiting..."
-			exit 1
-		fi
-	done
 		
 }
+
+function run_script {
+	
+	Rscript 96_well_spec_analysis.R -i testing/input/example_raw_plate_data.txt -m testing/input/example_sample_metadata.tsv -o testing/output_test/example > /dev/null
+
+}
+
 
 function check_md5 {
 	# Description: generates md5sum for all test files and compares to test files
@@ -79,19 +80,18 @@ function check_md5 {
 		md5sum ${TEST_DIR}/${file} > ${TEST_DIR}/${file}.md5
 		
 		# Check if the MD5 files match. Will be 0 if matching and 1 if not matching
-		# TODO - find a cleaner way to write this code
 		local test_md5=$(cut -d ' ' -f 1 ${TEST_DIR}/${file}.md5)
 		local known_md5=$(cut -d ' ' -f 1 ${MD5_DIR}/${file}.md5)
 		
 		# Report to user
 		if [ ${test_md5} = ${known_md5} ]; then
-			echo "${file}: MD5 check PASSED."
+			echo "* ${file}: MD5 check PASSED."
 			
 			# Clean up
 			rm ${TEST_DIR}/${file}.md5
 			
 		elif [ ${test_md5} != ${known_md5} ]; then
-			echo "${file}: MD5 check FAILED. Leaving behind ${TEST_DIR}/${file}.md5 for reference."
+			echo "* ${file}: MD5 check FAILED. Leaving behind ${TEST_DIR}/${file}.md5 for reference."
 			
 			# Change ${OVERALL_TEST_STATUS} to 1 if at least one test fails
 			OVERALL_TEST_STATUS=1
@@ -111,28 +111,23 @@ function main {
 	
 	test_inputs
 	
-	# Get date and time of start
-	start_time=$(date)
-	
-	# Check MD5s
-	check_md5
+	# Run script
+	echo "Running R script..."
+	mkdir -p ${TEST_DIR}
+	run_script
+	echo ""
 
-	end_time=$(date)
-	
+	# Check MD5s
+	echo "Testing outputs..."
+	check_md5
 	echo ""
 	
 	if [ ${OVERALL_TEST_STATUS} = 0 ]; then
-		printf "Test finished.\nOverall: PASSED\n\n"
+		printf "Overall: PASSED. Intermediate files cleaned up. Good to go!\n\n"
+		rm -r ${TEST_DIR} # cleanup
 	elif [ ${OVERALL_TEST_STATUS} = 1 ]; then
-		printf "Test finished.\nOverall: FAILED (see above)\n\n"
+		printf "Overall: FAILED (see above). Kept intermediate files.\n\n"
 	fi
-	
-	# TODO - remove the comment below once this is addressed.
-	echo "Started at ${start_time} and finished at ${end_time}."
-	echo ""
-
-	echo "$(basename $0): finished."
-	echo ""
 
 }
 
