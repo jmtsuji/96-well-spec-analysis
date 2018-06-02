@@ -6,14 +6,14 @@
 
 #####################################################
 ## User variables: #################################
-RUN_COMMAND_LINE <- TRUE # If selected, all user input here is ignored, and terminal-based input is expected instead.
+RUN_COMMAND_LINE <- FALSE # If selected, all user input here is ignored, and terminal-based input is expected instead.
 
 # Set other user variables here
 if (RUN_COMMAND_LINE == FALSE) {
-  setwd("/Users/JTsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
+  setwd("/home/jmtsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
   plate_data_filename <- c("testing/input/example_raw_plate_data.txt") # Raw data from the 96 well plate reader ('column/both' format, with default encoding)
   sample_metadata_filename <- "testing/input/example_sample_metadata.tsv" # Not needed if pre_parsed_data_file == FALSE
-  output_filenames_prefix <- "testing/output_test/example_data" # Prefix for output files
+  output_filenames_prefix <- "testing/output_test/example_data_2" # Prefix for output files
   
   pre_parsed_data_file <- NULL # This is an optional setting to import pre-parsed raw data files (e.g., produced by this script previously) to re-analyze for sample concentrations (e.g., after making custom edits).
   # Set to NULL if you want to process raw files (plate_data_filename, sample_metadata_filename) instead.
@@ -127,7 +127,6 @@ parse_command_line_input <- function() {
   
 }
 
-
 # Description: parses one plate from an input file
 parse_individual_plate <- function(unparsed_plate_data, plate_ending_line, plate_num) {
   # test data
@@ -187,10 +186,21 @@ parse_input_file <- function(file_name) {
 }
 
 # Description: for any table containing metadata, check if required columns exist and exit early if not.
-check_metadata <- function(table_with_metadata) {
+check_metadata <- function(table_with_metadata, input_type) {
+  # Input type is 'raw' (i.e., plain metadata) or 'pre-parsed' (i.e., plate data and metadata combined)
+  
+  # Define required columns based on input type
+  if (input_type == "raw") {
+    required_colnames <- c("Plate_number", "Well", "Sample_name", "Sample_type", 
+                           "Blanking_group", "Dilution_factor", "Standard_conc")
+  } else if (input_type == "pre-parsed") {
+    required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Sample_type", 
+                           "Blanking_group", "Dilution_factor", "Standard_conc")
+  } else {
+    stop("ERROR: input_type must be either 'raw' or 'pre-parsed'. Exiting...")
+  }
   
   # Check if required columns exist. If they do not, exit early.
-  required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
   req_col_test <- unique(required_colnames %in% colnames(table_with_metadata))
   if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
     stop(paste("ERROR: Missing at least one required table column; see README.md. You need at least: '", glue::collapse(required_colnames, sep = ", ") ,"'. Exiting...", sep = ""))
@@ -204,7 +214,7 @@ add_sample_metadata <- function(plate_data, metadata_filename) {
   plate_order <- read.table(metadata_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   
   # Check required columns exist and exit if not
-  check_metadata(plate_order)
+  check_metadata(plate_order, input_type = "raw")
   
   ## Check if the sample naming and plate abosorbance data have the same number of plates, and throw a warning if not
   if (identical(unique(plate_order$Plate_number), unique(plate_data$Plate_number)) == FALSE) {
@@ -324,23 +334,28 @@ check_standard_groups <- function(plate_table_blanked) {
   std_raw <- dplyr::filter(plate_table_blanked, Sample_type == "Standard")
   # TODO - if proceeding with multi-standard support: change this to rely on core columns only but then allow for all other columns to impact grouping, in case the user wanted more than one group of standards
   # Group by all variables supplied by user, in case this helps to split standards apart for the desired factorial approach
-  std_grouped <- dplyr::group_by_at(std_raw, colnames(std_raw)[!(colnames(std_raw) %in% c("Well", "Absorbance", "Absorbance_blanked", "Standard_conc"))])
+  std_grouped <- dplyr::group_by_at(std_raw, colnames(std_raw)[!(colnames(std_raw) %in% c("Well", "Absorbance", "Absorbance_blanked"))])
   std_summ <- summarise(std_grouped, Ave_abs_blanked = mean(Absorbance_blanked), StdDev_abs_blanked = sd(Absorbance_blanked))
+  
+  # Reduce std_summ to make easier to compare standard names during the check
+  # NOTE: DO NOT return std_summ to user because of this! Will be uninformative.
+  cols_to_omit_in_check <- c("Ave_abs_blanked", "StdDev_abs_blanked")
+  std_summ <- std_summ[,!(colnames(std_summ) %in% cols_to_omit_in_check)]
   
   if (("Standard_group" %in% colnames(plate_table_blanked)) == TRUE) {
     
-    cat("Detected column 'Standard_group' in input metadata for handling multiple standards.")
+    cat("Detected column 'Standard_group' in input metadata for handling multiple standards.\n")
     
   } else if (length(unique(std_summ$Sample_name)) == length(std_summ$Sample_name)) {
     
     # Else, see if just one standard type exists after summary
-    cat("One set of standards detected in entire input file.")
+    cat("One set of standards detected in entire input file.\n")
     
     # Add Standard_group for whole plate
     plate_table_blanked$Standard_group <- 1
   
-  } else if (unique(plate_table_blanked$Plate_number) > 1 && 
-             length(unique(std_summ$Sample_name)) == nrow(unique(std_summ[,!(colnames(plate_table_blanked) %in% "Plate_number")])) &&
+  } else if (length(unique(plate_table_blanked$Plate_number)) > 1 && 
+             length(unique(std_summ$Sample_name)) == nrow(unique(std_summ[,!(colnames(std_summ) %in% "Plate_number")])) &&
              unique(plate_table_blanked$Plate_number) == unique(std_summ$Plate_number)) {
     # Else, if the input file contained more than one plate, see if there is one standard per plate
     # Check this by seeing if three conditions are true:
@@ -349,7 +364,7 @@ check_standard_groups <- function(plate_table_blanked) {
     # TODO - see if #2 can be done more elegantly
     # 3. There is at least one standard present on each plate in the input data
     
-    cat("One set of standards detected per plate in the input file. Will calculate a separate standard curve for each plate.")
+    cat("One set of standards detected per plate in the input file. Will calculate a separate standard curve for each plate.\n")
     
     # Add standard group identical to Plate_number
     plate_table_blanked$Standard_group <- plate_table_blanked$Plate_number
@@ -357,9 +372,7 @@ check_standard_groups <- function(plate_table_blanked) {
   } else if (length(unique(std_summ$Sample_name)) < length(std_summ$Sample_name)) {
     # If there are extra standard groups on each plate, then error out
     
-    stop("You appear to have multiple types of standards on each plate but have not supplied the 'Standard_group' column in your
-         metadata file. The script cannot determine which samples to apply the different types of standards to. Please add the
-         'Standard_group' column and try again. Exiting...")
+    stop("You appear to have multiple types of standards on each plate but have not supplied the 'Standard_group' column in your metadata file. The script cannot determine which samples to apply the different types of standards to. Please add the 'Standard_group' column and try again. Exiting...")
     
   } else {
     stop("Something odd and unexpected went wrong in 'check_standard_groups'...")
@@ -375,7 +388,7 @@ calculate_standard_curve <- function(plate_table_blanked, standard_group) {
   ## Summarize standard curve data for the standard_group of interest
   std_raw <- dplyr::filter(plate_table_blanked, Sample_type == "Standard" & Standard_group == standard_group)
   # Group by all variables supplied by user, in case this helps to split standards apart for the desired factorial approach
-  std_grouped <- dplyr::group_by_at(std_raw, colnames(std_raw)[!(colnames(std_raw) %in% c("Well", "Absorbance", "Absorbance_blanked", "Standard_conc"))])
+  std_grouped <- dplyr::group_by_at(std_raw, colnames(std_raw)[!(colnames(std_raw) %in% c("Well", "Absorbance", "Absorbance_blanked"))])
   std_summ <- summarise(std_grouped, Ave_abs_blanked = mean(Absorbance_blanked), StdDev_abs_blanked = sd(Absorbance_blanked))
   
   # Run check of standards and remove negative absorbance standards if needed
@@ -396,7 +409,9 @@ calculate_standard_curve <- function(plate_table_blanked, standard_group) {
     trendline_coeff <- coefficients(trendline)
   }
   trendline_Rsquared <- summary(trendline)$r.squared
-  trendline_summ <- data.frame("Intercept" = unname(trendline_coeff[1]), "Slope" = unname(trendline_coeff[2]), "R_squared" = trendline_Rsquared, "Plate_number" = unique(std_summ$Plate_number), stringsAsFactors = FALSE)
+  trendline_summ <- data.frame("Intercept" = unname(trendline_coeff[1]), "Slope" = unname(trendline_coeff[2]), 
+                               "R_squared" = trendline_Rsquared, "Plate_number" = unique(std_summ$Plate_number), 
+                               "Standard_group" = unique(std_summ$Standard_group), stringsAsFactors = FALSE)
   
   # Return list of processed data
   std_curve_summary <- list(std_summ, trendline_summ)
@@ -588,13 +603,12 @@ calculate_standard_group <- function(plate_table_blanked, standard_group) {
   # TODO - long-term, consider making separate functions for plotting versus summarizing unknowns
   calculated_concentrations <- convert_to_concentration(summarized_unknowns, std_curve_summary)
   
-  # Make a new list with the output for that standard_group
-  output_list <- list(std_curve_summary$summarized_standards, std_curve_summary$summarized_trendline, 
-                      calculated_concentrations$calculated_concentrations, calculated_concentrations$std_plot,
-                      calculated_concentrations$calculated_concentrations$std_plot_with_unknowns)
+  # Make a new list with the output for that standard_group - sort items close to the desired final output order
+  output_list <- list(calculated_concentrations$calculated_concentrations, std_curve_summary$summarized_standards, 
+                      std_curve_summary$summarized_trendline, calculated_concentrations$std_plot,
+                      calculated_concentrations$std_plot_with_unknowns)
   # TODO - consider hard-coding this somewhere at the top
-  # TODO - consider changing order
-  names(output_list) <- c("Standards", "Trendlines", "Unknowns", "Std_curve_plot", "Std_curve_plot_with_unknowns")
+  names(output_list) <- c("Unknowns", "Standards", "Trendlines", "Std_curve_plot", "Std_curve_plot_with_unknowns")
   
   return(output_list)
   
@@ -629,7 +643,7 @@ collapse_list <- function(input_list) {
 make_plate_diagram <- function(plate_table, plate_number) {
   
   # Get data from that plate_number
-  plate_data <- dplyr::filter(plate_data, Plate_number == plate_number)
+  plate_table <- dplyr::filter(plate_table, Plate_number == plate_number)
   
   # Split wells into row and column
   plate_table$Well_row <- as.character(substr(plate_table$Well, start = 1, stop = 1))
@@ -682,6 +696,7 @@ calculate_plate_data <- function(plate_table) {
   # Process data for each standard group
   calculated_data_per_std_grp <- lapply(unique(plate_table_blanked$Standard_group), 
          function(x) {calculate_standard_group(plate_table_blanked, standard_group = x)})
+  names(calculated_data_per_std_grp) <- unique(plate_table_blanked$Standard_group)
   
   # Re-arrange output for clarity into one list per item type (rather than one list per standard_group)
   separated_list_entries <- lapply(names(calculated_data_per_std_grp[[1]]), 
@@ -694,9 +709,13 @@ calculate_plate_data <- function(plate_table) {
   names(bound_list_entries) <- names(separated_list_entries)
   
   # Add the summarized blanks and blanked raw data to the exported list
-  output_list <- list(plate_table, summarized_blanks, unlist(bound_list_entries))
-  # CHECK: does the 'unlist' syntax above work?
+  output_list <- c(list(plate_table, summarized_blanks), bound_list_entries)
   names(output_list) <- c("Raw_data", "Blanks", names(bound_list_entries))
+  
+  # Re-order list based on desired final output order
+  # NOTE: names provided here must exactly match names of list entries
+  list_order <- c("Raw_data", "Unknowns", "Blanks", "Standards", "Trendlines", "Std_curve_plot", "Std_curve_plot_with_unknowns")
+  output_list <- output_list[list_order]
   
   return(output_list)
   
@@ -794,7 +813,7 @@ main <- function() {
     plate_table <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
     
     # Check required columns exist and exit if not
-    check_metadata(plate_table)
+    check_metadata(plate_table, input_type = "pre-parsed")
     
   }
   
@@ -807,13 +826,12 @@ main <- function() {
          function(x) { make_plate_diagram(plate_table, plate_number = x) })
   names(plate_diagrams) <- unique(plate_table$Plate_number)
   
+  # Summarize as list for combining into the summarized_plot_list later
+  plate_diagrams <- list(plate_diagrams)
+  names(plate_diagrams) <- "Plate_diagrams"
+  
   ##### Summarize output
   cat("Summarizing output...\n")
-  
-  # Re-order to desired final export order
-  # TODO - REQUIRES that the names in lists exactly match what is here!
-  export_names <- c("Raw_data", "Unknowns", "Blanks", "Standards", "Trendlines", "Std_curve_plot", "Std_curve_plot_with_unknowns", "Plate_diagrams")
-  calculated_plate_data <- calculated_plate_data[[export_names]]
   
   # Make separate list of tables only and plots only (manually!)
   summarized_table_list <- calculated_plate_data[c(1:5)]
