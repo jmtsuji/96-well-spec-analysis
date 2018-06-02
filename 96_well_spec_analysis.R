@@ -6,7 +6,7 @@
 
 #####################################################
 ## User variables: #################################
-RUN_COMMAND_LINE <- FALSE # If selected, all user input here is ignored, and terminal-based input is expected instead.
+RUN_COMMAND_LINE <- TRUE # If selected, all user input here is ignored, and terminal-based input is expected instead.
 
 # Set other user variables here
 if (RUN_COMMAND_LINE == FALSE) {
@@ -81,16 +81,20 @@ parse_command_line_input <- function() {
   }
   
   # Determine if a plate file and metadata file were provided versus a pre-parsed file
-  if (is.null(opt$plate_data_filename) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) {
-    input_mode <- "raw"
+  if ((is.null(opt$plate_data_filename) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) && is.null(opt$pre_parsed_data_file) == FALSE ) {
+    # Quit if -i or -m AND -p were simultaneously set
+    stop("ERROR: Cannot have the '-p' flag set at the same time as '-i' or '-m'. Exiting...")
   } else if (is.null(opt$pre_parsed_data_file) == FALSE) {
     input_mode <- "pre-parsed"
-  } else if ((is.null(opt$plate_data_filename) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) && is.null(opt$pre_parsed_data_file) == FALSE ) {
-    stop("ERROR: Cannot have the '-p' flag set at the same time as '-i' or '-m'. Exiting...")
+  } else if (is.null(opt$plate_data_filename) == FALSE && is.null(opt$sample_metadata_filename) == FALSE) {
+    input_mode <- "raw"
+  } else if (is.null(opt$plate_data_filename) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) {
+    # If both -i and -m were not set together (checked in previous if statement), then exit if at least one of them was selected (means that the other one was not)
+    stop("ERROR: Need to have both '-i' and '-m' set to run in raw input mode. See -h for details. Exiting...")
   } else {
     stop("Something unexpected went wrong related to the '-p', '-i', and '-m' flags being set improperly. Exiting...")
   }
-  
+
   # Exit if required input tables are not provided (different for different input modes)
   if (input_mode == "raw") {
     if ( is.null(opt$plate_data_filename) ) {
@@ -763,16 +767,22 @@ main <- function() {
   if (RUN_COMMAND_LINE == TRUE) {
     parse_command_line_input()
   } else {
+    
     # Like done in parse_command_line_input, determine if the inputs are pre-parsed or not
-    if (is.null(plate_data_filename) == FALSE | is.null(sample_metadata_filename) == FALSE) {
-      input_mode <- "raw"
+    if ((is.null(plate_data_filename) == FALSE | is.null(sample_metadata_filename) == FALSE) && is.null(pre_parsed_data_file) == FALSE ) {
+      # Quit if -i or -m AND -p were simultaneously set
+      stop("ERROR: Cannot have the '-p' flag set at the same time as '-i' or '-m'. Exiting...")
     } else if (is.null(pre_parsed_data_file) == FALSE) {
       input_mode <- "pre-parsed"
-    } else if ((is.null(plate_data_filename) == FALSE | is.null(sample_metadata_filename) == FALSE) && is.null(pre_parsed_data_file) == FALSE ) {
-      stop("ERROR: Cannot have pre_parsed_data_file set at the same time as 'plate_data_filename' or 'sample_metadata_filename'. Exiting...")
+    } else if (is.null(plate_data_filename) == FALSE && is.null(sample_metadata_filename) == FALSE) {
+      input_mode <- "raw"
+    } else if (is.null(plate_data_filename) == FALSE | is.null(sample_metadata_filename) == FALSE) {
+      # If both -i and -m were not set together (checked in previous if statement), then exit if at least one of them was selected (means that the other one was not)
+      stop("ERROR: Need to have both '-i' and '-m' set to run in raw input mode. See -h for details. Exiting...")
     } else {
-      stop("Something unexpected went wrong related to your input table variables. Exiting...")
+      stop("Something unexpected went wrong related to the '-p', '-i', and '-m' flags being set improperly. Exiting...")
     }
+    
   }
   
   # Assign default naming prefix if not assigned by user
