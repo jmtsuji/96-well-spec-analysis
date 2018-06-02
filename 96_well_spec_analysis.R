@@ -36,7 +36,7 @@ library(reshape2, quietly = TRUE, warn.conflicts = FALSE)
 library(xlsx, quietly = TRUE, warn.conflicts = FALSE)
 #####################################################
 
-SCRIPT_VERSION <- "v0.3" # to match git tag
+SCRIPT_VERSION <- "v0.2.1-dev" # to match git tag
 
 parse_command_line_input <- function() {
   ### Grab arguments
@@ -466,6 +466,7 @@ plot_standard_curve <- function(summarized_standards, summarized_trendline, summ
     ggtitle(paste("Plate_number: ", unique(summarized_unknowns_plotting_data$Plate_number), sep = ""))
   
   # Add on samples to the standard plot
+  # Divide by dilution factor to make them place properly
   unk_plot <- std_plot +
     geom_errorbar(data = summarized_unknowns_plotting_data, 
                   aes(x = (Ave_concentration / Dilution_factor), 
