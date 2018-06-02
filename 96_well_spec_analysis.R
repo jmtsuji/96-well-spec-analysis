@@ -115,6 +115,8 @@ parse_command_line_input <- function() {
   
   if ( is.null(opt$force_curve_through_zero) ) {
     opt$force_curve_through_zero <- TRUE
+  } else {
+    opt$force_curve_through_zero <- FALSE
   }
   if ( is.null(opt$output_filenames_prefix) ) {
     opt$output_filenames_prefix <- NA # Signal to determine properly later
@@ -514,7 +516,7 @@ plot_standard_curve <- function(std_curve_summary, summarized_unknowns_plotting_
   
   ## Make standards plot without samples
   std_plot <- ggplot(std_curve_summary$summarized_standards, aes(x = Standard_conc, y = Ave_abs_blanked)) +
-    geom_smooth(method = "lm", se = T, colour = "purple") +
+    geom_smooth(method = "lm", formula = "y ~ x", se = TRUE, colour = "purple") +
     geom_errorbar(aes(x = Standard_conc, ymin = Ave_abs_blanked-StdDev_abs_blanked, 
                       ymax = Ave_abs_blanked+StdDev_abs_blanked), width = 0, size = 0.8, alpha = 0.8) +
     geom_point(alpha = 0.9, size = 3) +
@@ -819,8 +821,8 @@ main <- function() {
   } else if (input_mode == "pre-parsed") {
     
     # Read in pre-merged plate/sample data
-    cat("Loading pre-parsed data table...")
-    plate_table <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+    cat("Loading pre-parsed data table...\n")
+    plate_table <- read.table(pre_parsed_data_file, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
     
     # Check required columns exist and exit if not
     check_metadata(plate_table, input_type = "pre-parsed")
