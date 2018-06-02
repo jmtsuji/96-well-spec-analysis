@@ -843,10 +843,6 @@ main <- function() {
     cat("Parsing plate data...\n")
     plate_table <- parse_raw_data(plate_data_filename, sample_metadata_filename)
     
-    # Export combined data
-    merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
-    write.table(plate_table, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
-    
   } else if (input_mode == "pre-parsed") {
     
     # Read in pre-merged plate/sample data
@@ -881,6 +877,10 @@ main <- function() {
   cat("Printing summary files...\n")
   # Write summary Excel table
   write_excel_table(output_filenames_prefix, summarized_table_list)
+  
+  # Export combined spec/metadata file as TSV
+  merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
+  write.table(plate_table, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
   
   # Also export unknowns as TSV
   table_filename_unknowns <- paste(output_filenames_prefix, "_unknowns.tsv", sep = "")
