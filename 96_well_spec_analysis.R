@@ -895,4 +895,10 @@ main <- function() {
   
 }
 
-main()
+# Run the script only when called from command line, provided RUN_COMMAND_LINE == TRUE
+# See https://stackoverflow.com/a/2968404 (accessed 180602)
+if (interactive() == FALSE) {
+  main()
+} else if (RUN_COMMAND_LINE == FALSE) {
+  main()
+}
