@@ -770,6 +770,19 @@ finalize_plate_diagrams <- function(plate_table) {
   return(plate_diagrams)
 }
 
+# Description: MASTER function to create all calculated output (list of eight) from the plate_data table
+# Depends on all calculation scripts above. Final wrapper before proceeding with summary.
+calculate_all_data <- function(plate_table) {
+  
+  calculated_plate_data <- calculate_plate_data(plate_table)
+  
+  plate_diagrams <- finalize_plate_diagrams(plate_table)
+  
+  all_calculated_data <- c(calculated_plate_data, plate_diagrams)
+  
+  return(all_calculated_data)
+}
+
 # Description: writes Excel table of summarized data
 write_excel_table <- function(output_filenames_prefix, summarized_table_list) {
   
@@ -870,9 +883,7 @@ main <- function() {
   
   ##### Process standards and unknowns
   cat("Calculating concentrations...\n")
-  calculated_plate_data <- calculate_plate_data(plate_table)
-  
-  plate_diagrams <- finalize_plate_diagrams(plate_table)
+  all_calculated_data <- calculate_all_data(plate_table)
   
   ##### Summarize output
   cat("Summarizing output...\n")
