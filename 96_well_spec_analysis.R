@@ -25,15 +25,16 @@ if (RUN_COMMAND_LINE == FALSE) {
 
 #####################################################
 ## Load required packages: ##########################
-# TODO - add check function to see if these have been installed, and exit if not
-library(getopt, quietly = TRUE, warn.conflicts = FALSE)
-library(glue, quietly = TRUE, warn.conflicts = FALSE)
-library(plyr, quietly = TRUE, warn.conflicts = FALSE)
-suppressMessages(library(dplyr, quietly = TRUE, warn.conflicts = FALSE))
-library(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
-library(grid, quietly = TRUE, warn.conflicts = FALSE)
-library(reshape2, quietly = TRUE, warn.conflicts = FALSE)
-library(xlsx, quietly = TRUE, warn.conflicts = FALSE)
+required_packages <- c("getopt", "glue", "plyr", "dplyr", "ggplot2", "grid", "reshape2", "xlsx")
+
+# Check if the packages are already installed and exit if not
+installed_check <- required_packages %in% installed.packages()[,1]
+if (all(installed_check) == FALSE) {
+  warning(paste("Missing required packages: ", c(required_packages[!installed_check]), ". ", sep = "", collapse = ))
+  warning("See github page at https://github.com/jmtsuji/96-well-spec-analysis for a single line of code to install all required packages.")
+}
+# Load installed libraries
+invisible(lapply(required_packages, function(x) {library(package = x, character.only = TRUE, warn.conflicts = FALSE, quietly = TRUE)}))
 #####################################################
 
 SCRIPT_VERSION <- "v0.2.1-dev" # to match git tag
