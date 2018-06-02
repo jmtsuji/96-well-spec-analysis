@@ -186,17 +186,25 @@ parse_input_file <- function(file_name) {
   return(plate_data)
 }
 
+# Description: for any table containing metadata, check if required columns exist and exit early if not.
+check_metadata <- function(table_with_metadata) {
+  
+  # Check if required columns exist. If they do not, exit early.
+  required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
+  req_col_test <- unique(required_colnames %in% colnames(table_with_metadata))
+  if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
+    stop(paste("ERROR: Missing at least one required table column; see README.md. You need at least: '", glue::collapse(required_colnames, sep = ", ") ,"'. Exiting...", sep = ""))
+  }
+  
+}
+
 # Description: adds sample metadata to the parsed absorbance data
 add_sample_metadata <- function(plate_data, metadata_filename) {
   ## Import sample order data
   plate_order <- read.table(metadata_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
   
-  # Check if required columns exist. If they do not, exit early.
-  required_colnames <- c("Plate_number", "Well", "Sample_name", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
-  req_col_test <- unique(required_colnames %in% colnames(plate_order))
-  if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
-    stop("ERROR: Missing required column in sample naming file (see README.md). Exiting...")
-  }
+  # Check required columns exist and exit if not
+  check_metadata(plate_order)
   
   ## Check if the sample naming and plate abosorbance data have the same number of plates, and throw a warning if not
   if (identical(unique(plate_order$Plate_number), unique(plate_data$Plate_number)) == FALSE) {
@@ -774,7 +782,6 @@ main <- function() {
     
     cat("Parsing plate data...\n")
     plate_table <- parse_raw_data(plate_data_filename, sample_metadata_filename)
-    cat("Successfully read in plate data and sample naming data.\n")
     
     # Export combined data
     merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
@@ -783,14 +790,11 @@ main <- function() {
   } else if (input_mode == "pre-parsed") {
     
     # Read in pre-merged plate/sample data
+    cat("Loading pre-parsed data table...")
     plate_table <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
     
-    # Check if required columns exist. If they do not, exit early.
-    required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
-    req_col_test <- unique(required_colnames %in% colnames(plate_table))
-    if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
-      stop(paste("ERROR: Missing at least one required table column; see README.md. You need at least: '", glue::collapse(required_colnames, sep = ", ") ,"'. Exiting...", sep = ""))
-    }
+    # Check required columns exist and exit if not
+    check_metadata(plate_table)
     
   }
   
@@ -806,7 +810,10 @@ main <- function() {
   ##### Summarize output
   cat("Summarizing output...\n")
   
-  names(separated_list_entries) <- c("Unknowns", "Blanks", "Standards", "Trendlines", "Std_curve_plot", "Std_curve_plot_with_unknowns", "Plate_diagrams")
+  # Re-order to desired final export order
+  # TODO - REQUIRES that the names in lists exactly match what is here!
+  export_names <- c("Raw_data", "Unknowns", "Blanks", "Standards", "Trendlines", "Std_curve_plot", "Std_curve_plot_with_unknowns", "Plate_diagrams")
+  calculated_plate_data <- calculated_plate_data[[export_names]]
   
   # Make separate list of tables only and plots only (manually!)
   summarized_table_list <- calculated_plate_data[c(1:5)]
