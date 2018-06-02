@@ -6,7 +6,7 @@
 
 #####################################################
 ## User variables: #################################
-RUN_COMMAND_LINE <- TRUE # If selected, all user input here is ignored, and terminal-based input is expected instead.
+RUN_COMMAND_LINE <- FALSE # If selected, all user input here is ignored, and terminal-based input is expected instead.
 
 # Set other user variables here
 if (RUN_COMMAND_LINE == FALSE) {
@@ -251,7 +251,7 @@ summarize_blanks <- function(plate_table) {
 # Return: data table with the blanked absorbances
 blank_absorbances <- function(plate_table, summarized_blanks) {
   
-  # Remove sample name column from blank to avoid issue in joining
+  # Remove selected columns from blank table ahead of time to avoid issues during the left join
   summarized_blanks$Sample_name <- NULL
   
   # Join tables so that the blank absorbance is applied as a column for all entries with the same blanking group
@@ -587,7 +587,7 @@ subset_list <- function(plate_data_calculated, item) {
 }
 
 # Description: clarified information in the summary tables
-summarize_processed_data <- function(plate_data_merged, separated_list_entries) {
+summarize_processed_data <- function(separated_list_entries) {
   # Join tables from different plates
   # TODO - make this more elegant
   separated_list_entries[["Unknowns"]] <- dplyr::bind_rows(separated_list_entries[["Unknowns"]])
@@ -685,21 +685,21 @@ main <- function() {
   if (input_mode == "raw") {
     
     cat("Parsing plate data...\n")
-    plate_data_merged <- parse_raw_data(plate_data_filename, sample_metadata_filename)
+    plate_table <- parse_raw_data(plate_data_filename, sample_metadata_filename)
     cat("Successfully read in plate data and sample naming data.\n")
     
     # Export combined data
     merged_data_filename <- paste(output_filenames_prefix, "_raw_data.tsv", sep = "")
-    write.table(plate_data_merged, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
+    write.table(plate_table, file = merged_data_filename, sep = "\t", col.names = TRUE, row.names = FALSE)
     
   } else if (input_mode == "pre-parsed") {
     
     # Read in pre-merged plate/sample data
-    plate_data_merged <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+    plate_table <- read.table(plate_data_filename, sep = "\t", header = TRUE, stringsAsFactors = FALSE)
     
     # Check if required columns exist. If they do not, exit early.
     required_colnames <- c("Plate_number", "Well", "Absorbance", "Sample_name", "Sample_type", "Blanking_group", "Dilution_factor", "Standard_conc")
-    req_col_test <- unique(required_colnames %in% colnames(plate_data_merged))
+    req_col_test <- unique(required_colnames %in% colnames(plate_table))
     if (length(req_col_test) != 1 | req_col_test[1] == FALSE) {
       stop(paste("ERROR: Missing at least one required table column; see README.md. You need at least: '", glue::collapse(required_colnames, sep = ", ") ,"'. Exiting...", sep = ""))
     }
@@ -710,9 +710,9 @@ main <- function() {
   cat("Calculating concentrations...\n")
   
   # First, split the raw data into a list of individual plates
-  plate_data_sep <- lapply(unique(plate_data_merged$Plate_number), 
-                           function(x) {filter(plate_data_merged, Plate_number == x)})
-  names(plate_data_sep) <- unique(plate_data_merged$Plate_number)
+  plate_data_sep <- lapply(unique(plate_table$Plate_number), 
+                           function(x) {filter(plate_table, Plate_number == x)})
+  names(plate_data_sep) <- unique(plate_table$Plate_number)
   
   # Calculate plate data
   plate_data_calculated <- lapply(names(plate_data_sep), 
@@ -729,7 +729,7 @@ main <- function() {
   names(separated_list_entries) <- c("Unknowns", "Blanks", "Standards", "Trendlines", "Std_curve_plot", "Std_curve_plot_with_unknowns", "Plate_diagrams")
   
   # Clean up output and separate tables from lists (manually!)
-  summarized_data_list <- summarize_processed_data(plate_data_merged, separated_list_entries)
+  summarized_data_list <- summarize_processed_data(separated_list_entries)
   summarized_table_list <- summarized_data_list[c(1:4)]
   summarized_plot_list <- summarized_data_list[c(5:7)]
   
