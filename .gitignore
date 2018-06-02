@@ -1,2 +1,4 @@
 .Rhistory
-
+.testing/output_test/*
+.testing/.DS_Store
+.testing/input/.DS_Store
