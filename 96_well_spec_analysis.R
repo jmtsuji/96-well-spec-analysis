@@ -674,6 +674,47 @@ collapse_list <- function(input_list) {
   return(input_list)
 }
 
+# Description: fully processes calculation data for a single input file (for all standard_groups)
+# MASTER FUNCTION for calculation section
+# Return: list of seven: raw data for input file; blanks; standards; trendlines; unknowns; std_curve_plot; std_curve_plot_with_unknowns
+# Depends: summarize_blanks; blank_absorbances; check_standard_groups; calculate_standard_group; subset_list; collapse_list
+calculate_plate_data <- function(plate_table) {
+  
+  # Blank the absorbances
+  summarized_blanks <- summarize_blanks(plate_table)
+  plate_table_blanked <- blank_absorbances(plate_table, summarized_blanks)
+  
+  # Group into standard_groups (add if missing ormaybe error out)
+  plate_table_blanked <- check_standard_groups(plate_table_blanked)
+  
+  # Process data for each standard group
+  calculated_data_per_std_grp <- lapply(unique(plate_table_blanked$Standard_group), 
+         function(x) {calculate_standard_group(plate_table_blanked, standard_group = x)})
+  names(calculated_data_per_std_grp) <- unique(plate_table_blanked$Standard_group)
+  
+  # Re-arrange output for clarity into one list per item type (rather than one list per standard_group)
+  separated_list_entries <- lapply(names(calculated_data_per_std_grp[[1]]), 
+                                   function(x) { subset_list(calculated_data_per_std_grp, item = x) })
+  names(separated_list_entries) <- names(calculated_data_per_std_grp[[1]])
+  
+  # Bind each list of tables together into a single table
+  bound_list_entries <- lapply(1:length(separated_list_entries), 
+                               function(x) { collapse_list(input_list = separated_list_entries[[x]])})
+  names(bound_list_entries) <- names(separated_list_entries)
+  
+  # Add the summarized blanks and blanked raw data to the exported list
+  output_list <- c(list(plate_table, summarized_blanks), bound_list_entries)
+  names(output_list) <- c("Raw_data", "Blanks", names(bound_list_entries))
+  
+  # Re-order list based on desired final output order
+  # NOTE: names provided here must exactly match names of list entries
+  list_order <- c("Raw_data", "Unknowns", "Blanks", "Standards", "Trendlines", "Std_curve_plot", "Std_curve_plot_with_unknowns")
+  output_list <- output_list[list_order]
+  
+  return(output_list)
+  
+}
+
 # Description: creates a 96 well plate-style figure of the parsed data, for the specified plate_number
 make_plate_diagram <- function(plate_table, plate_number) {
   
@@ -715,45 +756,18 @@ make_plate_diagram <- function(plate_table, plate_number) {
   return(plate_diagram)
 }
 
-# Description: fully processes calculation data for a single input file (for all standard_groups)
-# MASTER FUNCTION for calculation section
-# Return: list of seven: raw data for input file; blanks; standards; trendlines; unknowns; std_curve_plot; std_curve_plot_with_unknowns
-# Depends: summarize_blanks; blank_absorbances; check_standard_groups; calculate_standard_group; subset_list; collapse_list
-calculate_plate_data <- function(plate_table) {
+# Description: makes plate diagrams and manipulates to make ready to export
+# Return: list of list of plate diagrams ready to attach to existing list of lists
+finalize_plate_diagrams <- function(plate_table) {
+  plate_diagrams <- lapply(unique(plate_table$Plate_number), 
+                           function(x) { make_plate_diagram(plate_table, plate_number = x) })
+  names(plate_diagrams) <- unique(plate_table$Plate_number)
   
-  # Blank the absorbances
-  summarized_blanks <- summarize_blanks(plate_table)
-  plate_table_blanked <- blank_absorbances(plate_table, summarized_blanks)
+  # Summarize as list for combining into the summarized_plot_list later
+  plate_diagrams <- list(plate_diagrams)
+  names(plate_diagrams) <- "Plate_diagrams"
   
-  # Group into standard_groups (add if missing ormaybe error out)
-  plate_table_blanked <- check_standard_groups(plate_table_blanked)
-  
-  # Process data for each standard group
-  calculated_data_per_std_grp <- lapply(unique(plate_table_blanked$Standard_group), 
-         function(x) {calculate_standard_group(plate_table_blanked, standard_group = x)})
-  names(calculated_data_per_std_grp) <- unique(plate_table_blanked$Standard_group)
-  
-  # Re-arrange output for clarity into one list per item type (rather than one list per standard_group)
-  separated_list_entries <- lapply(names(calculated_data_per_std_grp[[1]]), 
-                                   function(x) { subset_list(calculated_data_per_std_grp, item = x) })
-  names(separated_list_entries) <- names(calculated_data_per_std_grp[[1]])
-  
-  # Bind each list of tables together into a single table
-  bound_list_entries <- lapply(1:length(separated_list_entries), 
-                               function(x) { collapse_list(input_list = separated_list_entries[[x]])})
-  names(bound_list_entries) <- names(separated_list_entries)
-  
-  # Add the summarized blanks and blanked raw data to the exported list
-  output_list <- c(list(plate_table, summarized_blanks), bound_list_entries)
-  names(output_list) <- c("Raw_data", "Blanks", names(bound_list_entries))
-  
-  # Re-order list based on desired final output order
-  # NOTE: names provided here must exactly match names of list entries
-  list_order <- c("Raw_data", "Unknowns", "Blanks", "Standards", "Trendlines", "Std_curve_plot", "Std_curve_plot_with_unknowns")
-  output_list <- output_list[list_order]
-  
-  return(output_list)
-  
+  return(plate_diagrams)
 }
 
 # Description: writes Excel table of summarized data
@@ -858,14 +872,7 @@ main <- function() {
   cat("Calculating concentrations...\n")
   calculated_plate_data <- calculate_plate_data(plate_table)
   
-  # Make plate diagrams
-  plate_diagrams <- lapply(unique(plate_table$Plate_number), 
-         function(x) { make_plate_diagram(plate_table, plate_number = x) })
-  names(plate_diagrams) <- unique(plate_table$Plate_number)
-  
-  # Summarize as list for combining into the summarized_plot_list later
-  plate_diagrams <- list(plate_diagrams)
-  names(plate_diagrams) <- "Plate_diagrams"
+  plate_diagrams <- finalize_plate_diagrams(plate_table)
   
   ##### Summarize output
   cat("Summarizing output...\n")
