@@ -51,11 +51,11 @@ help_message <- function(params, message_length) {
   cat("\nSimple example: 96_well_spec_analysis.R -i spec_file.txt -m metadata_file.tsv -o analyzed_data\n\n")
   
   if (message_length == "full") {
-    cat("Details:\n", "-i\t--spec-file\t\tFilepath for raw data file from the 96 well spec. [Required]\n",
-        "-m\t--metadata-file\t\tFilepath for TSV-format file with metadata for each relevant spec well. See template in the Git repo, and see below for required columns. [Required]\n",
-        "-o\t--run-name\t\tGeneral prefix for the script output (additional descriptors and file extensions will be added to the end of this) [Optional | Uses -i name otherwise]\n",
-        "-p\t--pre-parsed-file\tAdvanced usage: optionally provide a file pre-parsed by this script with absorbance and metadata joined. Will only work if -i and -m are left empty. [Optional]\n",
-        "-z\t--unforce-zero\t\tSet this flag to turn off the default of forcing the line of best fit through the origin. [Optional | Force through zero]\n\n")
+    cat("Details:\n", "-i\t--spec_file\t\tFilepath for raw data file from the 96 well spec. [Required]\n",
+        "-m\t--metadata_file\t\tFilepath for TSV-format file with metadata for each relevant spec well. See template in the Git repo, and see below for required columns. [Required]\n",
+        "-o\t--run_name\t\tGeneral prefix for the script output (additional descriptors and file extensions will be added to the end of this) [Optional | Uses -i name otherwise]\n",
+        "-p\t--pre_parsed_file\tAdvanced usage: optionally provide a file pre-parsed by this script with absorbance and metadata joined. Will only work if -i and -m are left empty. [Optional]\n",
+        "-z\t--unforce_zero\t\tSet this flag to turn off the default of forcing the line of best fit through the origin. [Optional | Force through zero]\n\n")
     
     cat("Required columns in the metadata TSV file:\n",
         "* Plate_number: number sequentially from 1. Mostly important if your raw spec file contains more than one plate.\n",
@@ -90,17 +90,17 @@ parse_command_line_input <- function() {
   # -p pre_parsed_data_file
   # -z force_curve_through_zero
   # -o output_filenames_prefix (for output files)
-  params <- matrix(c('spec-file', 'i', 2, "character",
-                     'metadata-file', 'm', 2, "character",
-                     'run-name', 'o', 2, "character",
-                     'pre-parsed-file', 'p', 2, "character",
-                     'unforce-zero', 'z', 2, "logical",
+  params <- matrix(c('spec_file', 'i', 2, "character",
+                     'metadata_file', 'm', 2, "character",
+                     'run_name', 'o', 2, "character",
+                     'pre_parsed_file', 'p', 2, "character",
+                     'unforce_zero', 'z', 2, "logical",
                      'help', 'h', 2, "logical"), byrow=TRUE, ncol=4)
   
   opt <- getopt(params)
   
   # If no inputs files were provided, go to help
-  if ( is.null(opt$help) && is.null(opt$plate_data_filename) && is.null(opt$sample_metadata_filename) && is.null(opt$pre_parsed_data_file) ) {
+  if ( is.null(opt$help) && is.null(opt$spec_file) && is.null(opt$metadata_file) && is.null(opt$pre_parsed_file) ) {
     help_message(params, "short")
   }
   
@@ -110,14 +110,14 @@ parse_command_line_input <- function() {
   }
   
   # Determine if a plate file and metadata file were provided versus a pre-parsed file
-  if ((is.null(opt$plate_data_filename) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) && is.null(opt$pre_parsed_data_file) == FALSE ) {
+  if ((is.null(opt$spec_file) == FALSE | is.null(opt$metadata_file) == FALSE) && is.null(opt$pre_parsed_file) == FALSE ) {
     # Quit if -i or -m AND -p were simultaneously set
     stop("ERROR: Cannot have the '-p' flag set at the same time as '-i' or '-m'. Exiting...")
-  } else if (is.null(opt$pre_parsed_data_file) == FALSE) {
+  } else if (is.null(opt$pre_parsed_file) == FALSE) {
     input_mode <- "pre-parsed"
-  } else if (is.null(opt$plate_data_filename) == FALSE && is.null(opt$sample_metadata_filename) == FALSE) {
+  } else if (is.null(opt$spec_file) == FALSE && is.null(opt$metadata_file) == FALSE) {
     input_mode <- "raw"
-  } else if (is.null(opt$plate_data_filename) == FALSE | is.null(opt$sample_metadata_filename) == FALSE) {
+  } else if (is.null(opt$spec_file) == FALSE | is.null(opt$metadata_file) == FALSE) {
     # If both -i and -m were not set together (checked in previous if statement), then exit if at least one of them was selected (means that the other one was not)
     stop("ERROR: Need to have both '-i' and '-m' set to run in raw input mode. See -h for details. Exiting...")
   } else {
@@ -126,14 +126,14 @@ parse_command_line_input <- function() {
 
   # Exit if required input tables are not provided (different for different input modes)
   if (input_mode == "raw") {
-    if ( is.null(opt$plate_data_filename) ) {
+    if ( is.null(opt$spec_file) ) {
       stop("Input plate data filepaths required. Try -h for help message.")
     }
-    if ( is.null(opt$sample_metadata_filename) ) {
+    if ( is.null(opt$metadata_file) ) {
       stop("Input sample metdata filepath required. Try -h for help message.")
     }
   } else if (input_mode == "pre-parsed") {
-    if ( is.null(opt$pre_parsed_data_file) ) {
+    if ( is.null(opt$pre_parsed_file) ) {
       stop("Input pre-parsed absprbance/metadata table filepath required. Try -h for help message.")
     }
   } else {
@@ -142,23 +142,23 @@ parse_command_line_input <- function() {
   
   # Provide defaults for optional inputs if not provided
   
-  if ( is.null(opt$force_curve_through_zero) ) {
-    opt$force_curve_through_zero <- TRUE
+  if ( is.null(opt$unforce_zero) ) {
+    opt$unforce_zero <- TRUE
   } else {
-    opt$force_curve_through_zero <- FALSE
+    opt$unforce_zero <- FALSE
   }
-  if ( is.null(opt$output_filenames_prefix) ) {
-    opt$output_filenames_prefix <- NA # Signal to determine properly later
+  if ( is.null(opt$run_name) ) {
+    opt$run_name <- NA # Signal to determine properly later
   }
   
   # Make variables from provided input and save as global variables (<<-)
   # TODO - make CAPS
   input_mode <<- input_mode
-  plate_data_filename <<- opt$plate_data_filename
-  sample_metadata_filename <<- opt$sample_metadata_filename
-  pre_parsed_data_file <<- opt$pre_parsed_data_file
-  force_curve_through_zero <<- opt$force_curve_through_zero
-  output_filenames_prefix <<- opt$output_filenames_prefix
+  plate_data_filename <<- opt$spec_file
+  sample_metadata_filename <<- opt$metadata_file
+  pre_parsed_data_file <<- opt$pre_parsed_file
+  force_curve_through_zero <<- opt$unforce_zero
+  output_filenames_prefix <<- opt$run_name
   
 }
 
