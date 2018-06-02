@@ -37,7 +37,7 @@ if (all(installed_check) == FALSE) {
 invisible(lapply(required_packages, function(x) {library(package = x, character.only = TRUE, warn.conflicts = FALSE, quietly = TRUE)}))
 #####################################################
 
-SCRIPT_VERSION <- "v0.2.1-dev" # to match git tag
+SCRIPT_VERSION <- "v0.3" # to match git tag
 
 help_message <- function(params, message_length) {
   

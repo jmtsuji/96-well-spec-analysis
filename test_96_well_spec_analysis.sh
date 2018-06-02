@@ -7,7 +7,7 @@ set -euo pipefail
 # Description: Runs automated test of 96_well_spec_analysis.R
 
 # Hard-coded variables
-SCRIPT_VERSION="v0.2.1-dev" # to match git tag
+SCRIPT_VERSION="v0.3" # to match git tag
 TARGET_FILES=(example_raw_data.tsv example_unknowns.tsv)
 
 # If no input is provided, exit out and provide help
