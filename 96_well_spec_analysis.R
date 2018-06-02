@@ -204,7 +204,11 @@ add_sample_metadata <- function(plate_data, metadata_filename) {
   }
   
   ## Join sample order data with absorbance data
-  plate_data_merged <- dplyr::full_join(plate_data, plate_order, by = c("Well","Plate_number"))
+  plate_data_merged <- dplyr::full_join(plate_order, plate_data, by = c("Well","Plate_number"))
+  
+  # Move absorbance data to the third column
+  # TODO - make this code cleaner and more generic (e.g., what if Absorbance is not the last column someday after a code modification?)
+  plate_data_merged <- plate_data_merged[,c(1:2, ncol(plate_data_merged), 3:(ncol(plate_data_merged)-1))]
   
   return(plate_data_merged)
 }
