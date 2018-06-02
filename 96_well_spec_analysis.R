@@ -889,8 +889,8 @@ main <- function() {
   cat("Summarizing output...\n")
   
   # Make separate list of tables only and plots only (manually!)
-  summarized_table_list <- calculated_plate_data[c(1:5)]
-  summarized_plot_list <- c(calculated_plate_data[c(6:7)], plate_diagrams)
+  summarized_table_list <- all_calculated_data[c(1:5)]
+  summarized_plot_list <- all_calculated_data[c(6:8)]
   
   cat("Printing summary files...\n")
   # Write summary Excel table
