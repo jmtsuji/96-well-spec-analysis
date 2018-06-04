@@ -325,7 +325,9 @@ summarize_blanks <- function(plate_table) {
   
   # Throw a warning if SD > 10% of mean
   for (i in 1:nrow(blanks_summ)) {
-    if (blanks_summ$Blank_stdDev_abs[i] > (blanks_summ$Blank_ave_abs[i]) / 10) {
+    if (is.na(blanks_summ$Blank_stdDev_abs) == TRUE) {
+      warning(paste("Plate ", unique(plate_table$Plate_number), ": ", blanks_summ$Blanking_group[i], ": note that only one blank was provided (i.e., no replication)...", sep = ""))
+    } else if (blanks_summ$Blank_stdDev_abs[i] > (blanks_summ$Blank_ave_abs[i]) / 10) {
       warning(paste("Plate ", unique(plate_table$Plate_number), ": ", blanks_summ$Blanking_group[i], ": standard deviation is > 10% of mean of replicate blanks. Data could be fishy...", sep = ""))
     }
   }
