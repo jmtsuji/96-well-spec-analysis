@@ -32,12 +32,41 @@ installed_check <- required_packages %in% installed.packages()[,1]
 if (all(installed_check) == FALSE) {
   warning(paste("Missing required packages: ", c(required_packages[!installed_check]), ". ", sep = "", collapse = ))
   warning("See github page at https://github.com/jmtsuji/96-well-spec-analysis for a single line of code to install all required packages.")
+  
+  user_input <- readline("Would you like to install the missing packages? [y/n]")
+  if ( user_input == "y" | user_input == "Y" | user_input == "yes" | user_input == "Yes" ) {
+    cat("Installing missing packages...\n")
+    
+    missing_packages <- c(required_packages[!installed_check])
+    install.packages(missing_packages, dependencies = TRUE)
+    
+    if ( "xlsx" %in% missing_packages ) {
+      warning("WARNING: Installed package 'xlsx', but note that this package ALSO requires java (64-bit) to be installed on your machine to work. If you run into an error message related to loading 'xlsx' the next time you try to run this script, it could mean that you don't have Java installed or configured properly.")
+      # TODO - add more specific instructions here.
+    }
+    
+    cat("Install finished. Try running the script again now.")
+    quit(status = 1)
+    
+  } else if ( user_input == "n" | user_input == "N" | user_input == "no" | user_input == "No" ) {
+    
+    cat("Not installing missing packages. Script cannot run until they are installed. Exiting...\n")
+    quit(status = 1)
+    
+  } else {
+    
+    cat(paste("Provided input ", user_input, " did not match y/n. Try again. Exiting...\n"))
+    quit(status = 1)
+    # TODO - turn this into a 'while' loop to ask multiple times if something odd was input.
+    
+  }
+  
 }
 # Load installed libraries
 invisible(lapply(required_packages, function(x) {library(package = x, character.only = TRUE, warn.conflicts = FALSE, quietly = TRUE)}))
 #####################################################
 
-SCRIPT_VERSION <- "v0.3" # to match git tag
+SCRIPT_VERSION <- "v0.3-dev" # to match git tag
 
 help_message <- function(params, message_length) {
   
@@ -337,11 +366,7 @@ check_standards <- function(std_summ, plate_table_blanked) {
   # Check if standards belong to more than one blanking group. Could imply that there are multiple types of standards in a single plate, which this script cannot handle.
   std_Blanking_group <- as.character(unique(std_summ$Blanking_group))
   
-  # Check that only one Blanking Group is present and throw a warning otherwise -- handling multiple is not yet supported.
-  if (length(std_Blanking_group) > 1) {
-    warning(paste("Detected standards of multiple Blanking Groups in Plate ", 
-                  unique(plate_table_blanked$Plate_number), ". the dataset. The script is not yet able to handle this. Should only be one type of standard per plate. Your data could be unusual...", sep = ""))
-  }
+  # TODO - add check that a blank exists for each blanking group within the provided standard group
   
   # Check if blank absorbance is greater than absorbance of lowest standard
   if (min(std_summ$Ave_abs_blanked) < 0) {
@@ -351,7 +376,7 @@ check_standards <- function(std_summ, plate_table_blanked) {
     std_names_below_blank_readable <- glue::collapse(std_names_below_blank, sep = ", ")
     
     # Throw a warning
-    warning(paste("Plate_number ", unique(plate_table_blanked$Plate_number), ": blank has higher absorbance than ", nrow(stds_below_blank), 
+    warning(paste("Standard group ", unique(plate_table_blanked$Standard_group), ": blank has higher absorbance than ", nrow(stds_below_blank), 
                   " of the standards (",  std_names_below_blank_readable, "). Will throw out all standards below blank.", sep = ""))
     
     # Remove all standards with absorbance lower than blank
@@ -468,7 +493,7 @@ summarize_unknowns <- function(plate_table_blanked, standard_group) {
   # Throw a warning if the blanking group does not exist for an unknown.
   if (anyNA(summarized_unknowns$Ave_abs_blanked) == TRUE) {
     # TODO - add code to determine the exact blanking group that is missing
-    warning(paste("Plate ", unique(plate_table_blanked$Plate_number), ": at least one blanking group for unknowns has no corresponding blank. Data will contain NA values.", sep = ""))
+    warning(paste("Plate ", unique(plate_table_blanked$Standard_group), ": at least one blanking group for unknowns has no corresponding blank. Data will contain NA values.", sep = ""))
   }
   
   return(summarized_unknowns)
@@ -491,10 +516,10 @@ check_concentrations <- function(summarized_unknowns) {
     
     # Report what was done
     if (num_neg_values == 1) {
-      warning("Plate_number ", unique(summarized_unknowns$Plate_number), ": ", num_neg_values, " sample has a negative concentration based on standard curve (",
+      warning("Standard_group ", unique(summarized_unknowns$Standard_group), ": ", num_neg_values, " sample has a negative concentration based on standard curve (",
               glue::collapse(round(neg_values, 3), sep = ", "), ").", sep = "")
     } else if (num_neg_values > 1) {
-      warning("Plate_number ", unique(summarized_unknowns$Plate_number), ": ", num_neg_values, " samples have negative concentrations based on standard curve (",
+      warning("Standard_group ", unique(summarized_unknowns$Standard_group), ": ", num_neg_values, " samples have negative concentrations based on standard curve (",
               neg_values_readable, ").", sep = "")
     }
     
@@ -502,7 +527,7 @@ check_concentrations <- function(summarized_unknowns) {
     if (min(summarized_unknowns_plotting_data$Ave_abs_blanked) < 0) {
       neg_abs_positions <- which(summarized_unknowns_plotting_data$Ave_abs_blanked <= 0)
       
-      warning(paste("Plate_number ", unique(summarized_unknowns$Plate_number), ": also note that ", num_neg_values, " additional samples have positive concentrations but negative blanked absorbances... something could be odd with the data.", sep = ""))
+      warning(paste("Standard_group ", unique(summarized_unknowns$Standard_group), ": also note that ", num_neg_values, " additional samples have positive concentrations but negative blanked absorbances... something could be odd with the data.", sep = ""))
     }
     
   } else {
@@ -517,14 +542,14 @@ check_concentrations <- function(summarized_unknowns) {
   
   if (min(summarized_unknowns_plotting_data$errorbar_max) < 0) {
     # Max error bar should not be < 0 at this point, because negative data points for concentration were already removed
-    warning(paste("Plate_number ", unique(summarized_unknowns$Plate_number), ": something seems wrong with the error bars on samples in the standard curve plots...", sep = ""))
+    warning(paste("Standard_group ", unique(summarized_unknowns$Standard_group), ": something seems wrong with the error bars on samples in the standard curve plots...", sep = ""))
     
   } else if (min(summarized_unknowns_plotting_data$errorbar_min) < 0) {
     # Eliminate negative values and replace with the value of the point itself (so bottom bars will essentially be unplotted)
     neg_errorbar_pos <- which(summarized_unknowns_plotting_data$errorbar_min < 0)
     summarized_unknowns_plotting_data$errorbar_min[neg_errorbar_pos] <- summarized_unknowns_plotting_data$Ave_abs_blanked[neg_errorbar_pos]
     
-    warning(paste("Plate_number ", unique(summarized_unknowns$Plate_number), ": had to remove negative min. error bar positions for ", length(neg_errorbar_pos), 
+    warning(paste("Standard_group ", unique(summarized_unknowns$Standard_group), ": had to remove negative min. error bar positions for ", length(neg_errorbar_pos), 
                   " sample(s) in the std. curve plot in order to make the sample(s) plot-able. Unchanged in the actual data, however...", sep = ""))
   }
   
@@ -571,7 +596,7 @@ plot_standard_curve <- function(std_curve_summary, summarized_unknowns_plotting_
     annotation_logticks() +
     xlab(paste("Concentration (", unique(summarized_unknowns_plotting_data$Concentration_units), ")", sep = "")) +
     ylab("Absorbance (blanked)") +
-    ggtitle(paste("Plate_number: ", unique(summarized_unknowns_plotting_data$Plate_number), sep = ""))
+    ggtitle(paste("Plate_number: ", unique(summarized_unknowns_plotting_data$Plate_number), "; Standard_group: ", unique(summarized_unknowns_plotting_data$Standard_group),  sep = ""))
   
   # Add on samples to the standard plot
   # Divide by dilution factor to make them place properly
