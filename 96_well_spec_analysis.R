@@ -542,11 +542,11 @@ check_concentrations <- function(summarized_unknowns) {
   summarized_unknowns_plotting_data$errorbar_min <- summarized_unknowns_plotting_data$Ave_abs_blanked - summarized_unknowns_plotting_data$StdDev_abs_blanked
   summarized_unknowns_plotting_data$errorbar_max <- summarized_unknowns_plotting_data$Ave_abs_blanked + summarized_unknowns_plotting_data$StdDev_abs_blanked
   
-  if (min(summarized_unknowns_plotting_data$errorbar_max) < 0) {
+  if (min(summarized_unknowns_plotting_data$errorbar_max, na.rm = TRUE) < 0) {
     # Max error bar should not be < 0 at this point, because negative data points for concentration were already removed
     warning(paste("Standard_group ", unique(summarized_unknowns$Standard_group), ": something seems wrong with the error bars on samples in the standard curve plots...", sep = ""))
     
-  } else if (min(summarized_unknowns_plotting_data$errorbar_min) < 0) {
+  } else if (min(summarized_unknowns_plotting_data$errorbar_min, na.rm = TRUE) < 0) {
     # Eliminate negative values and replace with the value of the point itself (so bottom bars will essentially be unplotted)
     neg_errorbar_pos <- which(summarized_unknowns_plotting_data$errorbar_min < 0)
     summarized_unknowns_plotting_data$errorbar_min[neg_errorbar_pos] <- summarized_unknowns_plotting_data$Ave_abs_blanked[neg_errorbar_pos]
@@ -574,7 +574,7 @@ plot_standard_curve <- function(std_curve_summary, summarized_unknowns_plotting_
   std_plot <- ggplot(std_curve_summary$summarized_standards, aes(x = Standard_conc, y = Ave_abs_blanked)) +
     geom_smooth(method = "lm", formula = "y ~ x", se = TRUE, colour = "purple") +
     geom_errorbar(aes(x = Standard_conc, ymin = Ave_abs_blanked-StdDev_abs_blanked, 
-                      ymax = Ave_abs_blanked+StdDev_abs_blanked), width = 0, size = 0.8, alpha = 0.8) +
+                      ymax = Ave_abs_blanked+StdDev_abs_blanked), width = 0, size = 0.8, alpha = 0.8, na.rm = TRUE) +
     geom_point(alpha = 0.9, size = 3) +
     annotate("text", x = x_coord, y = y_coord, 
              label = paste("y = ", round(std_curve_summary$summarized_trendline$Slope, digits = 5), 
@@ -606,7 +606,7 @@ plot_standard_curve <- function(std_curve_summary, summarized_unknowns_plotting_
     geom_errorbar(data = summarized_unknowns_plotting_data, 
                   aes(x = (Ave_concentration / Dilution_factor), 
                       ymin = errorbar_min, ymax = errorbar_max), 
-                  width = 0, size = 0.8, alpha = 0.8, colour = "darkcyan") +
+                  width = 0, size = 0.8, alpha = 0.8, colour = "darkcyan", na.rm = TRUE) +
     geom_point(data = summarized_unknowns_plotting_data, 
                aes((Ave_concentration / Dilution_factor), Ave_abs_blanked), 
                shape = 21, alpha = 0.8, size = 3, fill = "darkcyan")
