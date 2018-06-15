@@ -376,8 +376,8 @@ blank_absorbances <- function(plate_table, summarized_blanks) {
   # Blank the absorbances
   plate_table_blanked$Absorbance_blanked <- plate_table_blanked$Absorbance - plate_table_blanked$Blank_ave_abs
   
-  # Check that none of the blanked absorbances have become NA (except for standards, which don't matter)
-  if (anyNA(dplyr::filter(plate_table_blanked, Sample_type != "Standard")$Absorbance_blanked)) {
+  # Check that none of the blanked absorbances have become NA
+  if (anyNA(plate_table_blanked$Absorbance_blanked)) {
     warning("WARNING: Some absorbances after blanking are 'NA'. This means something might have gone wrong during blanking.")
   }
   
