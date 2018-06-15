@@ -370,13 +370,13 @@ blank_absorbances <- function(plate_table, summarized_blanks) {
   non_join_cols_logical <- !(colnames(summarized_blanks) %in% c("Blank_ave_abs", "Blank_stdDev_abs"))
   join_cols <- colnames(summarized_blanks)[non_join_cols_logical]
   # Before joining, remove rows of plate table with no associated metadata (probably left in the template by the user but not needed)
-  plate_table_reduced <- plate_table[!(summarized_blanks_temp$Sample_name %in% ""),]
+  plate_table_reduced <- plate_table[!(plate_table$Sample_name %in% ""),]
   plate_table_blanked <- dplyr::left_join(plate_table_reduced, summarized_blanks, by = join_cols)
   
   # Blank the absorbances
   plate_table_blanked$Absorbance_blanked <- plate_table_blanked$Absorbance - plate_table_blanked$Blank_ave_abs
   
-  # Check that none of the blanked absorbances have become NA
+  # Check that none of the blanked absorbances have become NA (except for standards, which don't matter)
   if (anyNA(dplyr::filter(plate_table_blanked, Sample_type != "Standard")$Absorbance_blanked)) {
     warning("WARNING: Some absorbances after blanking are 'NA'. This means something might have gone wrong during blanking.")
   }
