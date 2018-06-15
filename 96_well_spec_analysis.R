@@ -335,13 +335,33 @@ summarize_blanks <- function(plate_table) {
   return(blanks_summ)
 }
 
+
+# Description: shows if a given column (by name or number) in a given tibble (NOT data frame!) contains only NA values (-> returns TRUE)
+# Return: TRUE if only NA's; FALSE otherwise
+check_NA_column <- function(input_tibble, column_id) {
+  if (length(unique(input_tibble[[column_id]])) == 1) {
+    if (is.na(unique(input_tibble[[column_id]])) == TRUE) {
+      return(TRUE)
+    } else {
+      return(FALSE)
+    }
+  } else {
+    return(FALSE)
+  }
+}
+
+
 # Description: blanks the absorbances of all standards/samples
 # Return: data table with the blanked absorbances as 'Absorbance_blanked' (column)
 blank_absorbances <- function(plate_table, summarized_blanks) {
   
   # Remove selected columns from blank table ahead of time to avoid issues during the left join
-  summarized_blanks$Sample_name <- NULL
   cols_to_remove <- c("Sample_name", "Replicate", "Sample_type", "Dilution_factor")
+  # Also exclude any columns with NA values for the blanks from the join. The assumption here is that those columns are not meant to make an impact on blanking.
+  NA_column_names <- colnames(summarized_blanks)[unlist(
+    lapply(colnames(summarized_blanks), function(x) { check_NA_column(summarized_blanks, x) }))]
+  # TODO - check if any columns have some but not all NA's. Could pose a problem.
+  cols_to_remove <- c(cols_to_remove, NA_column_names)
   cols_to_remove_logical <- !colnames(summarized_blanks) %in% cols_to_remove
   summarized_blanks <- summarized_blanks[,cols_to_remove_logical]
   
@@ -349,10 +369,17 @@ blank_absorbances <- function(plate_table, summarized_blanks) {
   # Join by all columns except c("Blank_ave_abs", "Blank_stdDev_abs"), which will added to the blanked table
   non_join_cols_logical <- !(colnames(summarized_blanks) %in% c("Blank_ave_abs", "Blank_stdDev_abs"))
   join_cols <- colnames(summarized_blanks)[non_join_cols_logical]
-  plate_table_blanked <- dplyr::left_join(plate_table, summarized_blanks, by = join_cols)
+  # Before joining, remove rows of plate table with no associated metadata (probably left in the template by the user but not needed)
+  plate_table_reduced <- plate_table[!(summarized_blanks_temp$Sample_name %in% ""),]
+  plate_table_blanked <- dplyr::left_join(plate_table_reduced, summarized_blanks, by = join_cols)
   
   # Blank the absorbances
   plate_table_blanked$Absorbance_blanked <- plate_table_blanked$Absorbance - plate_table_blanked$Blank_ave_abs
+  
+  # Check that none of the blanked absorbances have become NA
+  if (anyNA(dplyr::filter(plate_table_blanked, Sample_type != "Standard")$Absorbance_blanked)) {
+    warning("WARNING: Some absorbances after blanking are 'NA'. This means something might have gone wrong during blanking.")
+  }
   
   # Now that blanking is done, remove unnecessary columns introduced during blanking
   plate_table_blanked$Blank_ave_abs <- NULL
