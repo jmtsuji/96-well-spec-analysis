@@ -424,6 +424,7 @@ check_standard_groups <- function(plate_table_blanked) {
   # TODO - if proceeding with multi-standard support: change this to rely on core columns only but then allow for all other columns to impact grouping, in case the user wanted more than one group of standards
   # Group by all variables supplied by user, in case this helps to split standards apart for the desired factorial approach
   std_grouped <- dplyr::group_by_at(std_raw, colnames(std_raw)[!(colnames(std_raw) %in% c("Well", "Absorbance", "Absorbance_blanked"))])
+  # TODO - Consider adding "Plate_number" here. Not sure if this would make the code more robust
   std_summ <- summarise(std_grouped, Ave_abs_blanked = mean(Absorbance_blanked), StdDev_abs_blanked = sd(Absorbance_blanked))
   
   # Reduce std_summ to make easier to compare standard names during the check
@@ -440,7 +441,7 @@ check_standard_groups <- function(plate_table_blanked) {
     # Else, see if just one standard type exists after summary
     cat("One set of standards detected in entire input file.\n")
     
-    # Add Standard_group for whole plate
+    # Add Standard_group for whole data file
     plate_table_blanked$Standard_group <- 1
   
   } else if (length(unique(plate_table_blanked$Plate_number)) > 1 && 
@@ -477,7 +478,7 @@ calculate_standard_curve <- function(plate_table_blanked, standard_group) {
   ## Summarize standard curve data for the standard_group of interest
   std_raw <- dplyr::filter(plate_table_blanked, Sample_type == "Standard" & Standard_group == standard_group)
   # Group by all variables supplied by user, in case this helps to split standards apart for the desired factorial approach
-  std_grouped <- dplyr::group_by_at(std_raw, colnames(std_raw)[!(colnames(std_raw) %in% c("Well", "Absorbance", "Absorbance_blanked"))])
+  std_grouped <- dplyr::group_by_at(std_raw, colnames(std_raw)[!(colnames(std_raw) %in% c("Plate_number", "Well", "Absorbance", "Absorbance_blanked"))])
   std_summ <- summarise(std_grouped, Ave_abs_blanked = mean(Absorbance_blanked), StdDev_abs_blanked = sd(Absorbance_blanked))
   
   # Run check of standards and remove negative absorbance standards if needed
@@ -499,8 +500,7 @@ calculate_standard_curve <- function(plate_table_blanked, standard_group) {
   }
   trendline_Rsquared <- summary(trendline)$r.squared
   trendline_summ <- data.frame("Intercept" = unname(trendline_coeff[1]), "Slope" = unname(trendline_coeff[2]), 
-                               "R_squared" = trendline_Rsquared, "Plate_number" = unique(std_summ$Plate_number), 
-                               "Standard_group" = unique(std_summ$Standard_group), stringsAsFactors = FALSE)
+                               "R_squared" = trendline_Rsquared, "Standard_group" = unique(std_summ$Standard_group), stringsAsFactors = FALSE)
   
   # Return list of processed data
   std_curve_summary <- list(std_summ, trendline_summ)
@@ -625,7 +625,7 @@ plot_standard_curve <- function(std_curve_summary, summarized_unknowns_plotting_
     annotation_logticks() +
     xlab(paste("Concentration (", unique(summarized_unknowns_plotting_data$Concentration_units), ")", sep = "")) +
     ylab("Absorbance (blanked)") +
-    ggtitle(paste("Plate_number: ", unique(summarized_unknowns_plotting_data$Plate_number), "; Standard_group: ", unique(summarized_unknowns_plotting_data$Standard_group),  sep = ""))
+    ggtitle(paste("Standard_group: ", unique(summarized_unknowns_plotting_data$Standard_group),  sep = ""))
   
   # Add on samples to the standard plot
   # Divide by dilution factor to make them place properly
@@ -805,7 +805,7 @@ make_plate_diagram <- function(plate_table, plate_number) {
     scale_fill_gradientn(colours = c("#ffffff", "#ff3399", "#660066"), limits = c(0,1)) + # Used limits to set absolute colour scale, as recommended at https://stackoverflow.com/a/21538521 (accessed Oct 2nd, 2017)
     xlab("") +
     ylab("") +
-    ggtitle(unique(plate_table$Date))
+    ggtitle(paste("Plate_number:", unique(plate_table$Plate_number)))
   
   return(plate_diagram)
 }
