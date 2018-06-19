@@ -270,6 +270,18 @@ check_metadata <- function(table_with_metadata, input_type) {
     stop(paste("ERROR: Missing at least one required table column; see README.md. You need at least: '", glue::collapse(required_colnames, sep = ", ") ,"'. Exiting...", sep = ""))
   }
   
+  # Check that at least some unknowns, blanks, and standards exist. Exit if not.
+  if (("Unknown" %in% table_with_metadata$Sample_type) == FALSE) {
+    stop("ERROR: no unknowns provided in metadata (should be 'Unknown' under 'Sample_type' column). Exiting...")
+  } else if (("Blank" %in% table_with_metadata$Sample_type) == FALSE) {
+    stop("ERROR: no blanks provided in metadata (should be 'Blank' under 'Sample_type' column). Exiting...")
+  } else if (("Standard" %in% table_with_metadata$Sample_type) == FALSE) {
+    stop("ERROR: no standards provided in metadata (should be 'Standard' under 'Sample_type' column). Exiting...")
+  }
+  
+  # TODO - add more checks
+  # Should be at least two standards
+  
 }
 
 # Description: adds sample metadata to the parsed absorbance data
