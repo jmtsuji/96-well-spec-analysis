@@ -335,6 +335,10 @@ summarize_blanks <- function(plate_table) {
   blanks_grouped <- dplyr::group_by_at(blanks_raw, colnames(blanks_raw)[!(colnames(blanks_raw) %in% c("Well", "Absorbance", "Standard_conc"))])
   blanks_summ <- summarise(blanks_grouped, Blank_ave_abs = mean(Absorbance), Blank_stdDev_abs = sd(Absorbance))
   
+  # Report number of blanking groups detected
+  num_blanking_groups <- length(unique(blanks_summ$Blanking_group))
+  cat(paste("Detected ", num_blanking_groups, " blanking groups."), sep = "")
+  
   # Throw a warning if SD > 10% of mean
   for (i in 1:nrow(blanks_summ)) {
     if (is.na(blanks_summ$Blank_stdDev_abs[i]) == TRUE) {
@@ -361,7 +365,6 @@ check_NA_column <- function(input_tibble, column_id) {
     return(FALSE)
   }
 }
-
 
 # Description: blanks the absorbances of all standards/samples
 # Return: data table with the blanked absorbances as 'Absorbance_blanked' (column)
