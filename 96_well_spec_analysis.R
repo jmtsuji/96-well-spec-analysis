@@ -10,7 +10,7 @@ RUN_COMMAND_LINE <- TRUE # If selected, all user input here is ignored, and term
 
 # Set other user variables here
 if (RUN_COMMAND_LINE == FALSE) {
-  setwd("/home/jmtsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
+  setwd("/Users/JTsuji/Research_General/Bioinformatics/02_git/96-well-spec-analysis/") # your working directory where files are stored
   plate_data_filename <- c("testing/input/example_raw_plate_data.txt") # Raw data from the 96 well plate reader ('column/both' format, with default encoding)
   sample_metadata_filename <- "testing/input/example_sample_metadata.tsv" # Not needed if pre_parsed_data_file == FALSE
   output_filenames_prefix <- "testing/output_test/example_data_2" # Prefix for output files
@@ -355,30 +355,25 @@ check_NA_column <- function(input_tibble, column_id) {
 # Return: data table with the blanked absorbances as 'Absorbance_blanked' (column)
 blank_absorbances <- function(plate_table, summarized_blanks) {
   
-  # Remove selected columns from blank table ahead of time to avoid issues during the left join
-  cols_to_remove <- c("Sample_name", "Replicate", "Sample_type", "Dilution_factor")
-  # Also exclude any columns with NA values for the blanks from the join. The assumption here is that those columns are not meant to make an impact on blanking.
-  NA_column_names <- colnames(summarized_blanks)[unlist(
-    lapply(colnames(summarized_blanks), function(x) { check_NA_column(summarized_blanks, x) }))]
-  # TODO - check if any columns have some but not all NA's. Could pose a problem.
-  cols_to_remove <- c(cols_to_remove, NA_column_names)
-  cols_to_remove_logical <- !colnames(summarized_blanks) %in% cols_to_remove
-  summarized_blanks <- summarized_blanks[,cols_to_remove_logical]
+  # Reduce the summarized_blanks table down to essential columns for merging
+  cols_to_keep <- c("Plate_number", "Blanking_group", "Blank_ave_abs", "Blank_stdDev_abs")
+  cols_to_keep_logical <- colnames(summarized_blanks) %in% cols_to_keep
+  summarized_blanks_simplified <- summarized_blanks[,cols_to_keep_logical]
   
-  # Join tables so that the blank absorbance is applied as a column for all entries with the same blanking group
-  # Join by all columns except c("Blank_ave_abs", "Blank_stdDev_abs"), which will added to the blanked table
-  non_join_cols_logical <- !(colnames(summarized_blanks) %in% c("Blank_ave_abs", "Blank_stdDev_abs"))
-  join_cols <- colnames(summarized_blanks)[non_join_cols_logical]
   # Before joining, remove rows of plate table with no associated metadata (probably left in the template by the user but not needed)
   plate_table_reduced <- plate_table[!(plate_table$Sample_name %in% ""),]
-  plate_table_blanked <- dplyr::left_join(plate_table_reduced, summarized_blanks, by = join_cols)
+  
+  # Join tables so that the blank absorbance is applied as a column for all entries with the same Blanking_group and Plate_number
+  # NOTE that this means that each blanking group MUST have a unique blanking_group entry to be processed correctly
+  join_cols <- c("Plate_number", "Blanking_group")
+  plate_table_blanked <- dplyr::left_join(plate_table_reduced, summarized_blanks_simplified, by = join_cols)
   
   # Blank the absorbances
   plate_table_blanked$Absorbance_blanked <- plate_table_blanked$Absorbance - plate_table_blanked$Blank_ave_abs
   
   # Check that none of the blanked absorbances have become NA
   if (anyNA(plate_table_blanked$Absorbance_blanked)) {
-    warning("WARNING: Some absorbances after blanking are 'NA'. This means something might have gone wrong during blanking.")
+    stop("ERROR: Some absorbances after blanking are 'NA'. This means something likely went wrong during blanking (e.g., some samples had no corresponding blakning group). Exiting...")
   }
   
   # Now that blanking is done, remove unnecessary columns introduced during blanking
