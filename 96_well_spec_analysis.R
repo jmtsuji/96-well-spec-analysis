@@ -337,7 +337,7 @@ summarize_blanks <- function(plate_table) {
   
   # Report number of blanking groups detected
   num_blanking_groups <- length(unique(blanks_summ$Blanking_group))
-  cat(paste("Detected ", num_blanking_groups, " blanking groups."), sep = "")
+  cat(paste("Detected ", num_blanking_groups, " blanking groups.\n"), sep = "")
   
   # Throw a warning if SD > 10% of mean
   for (i in 1:nrow(blanks_summ)) {
