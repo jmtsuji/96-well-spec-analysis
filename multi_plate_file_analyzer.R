@@ -21,10 +21,18 @@ if (RUN_COMMAND_LINE == FALSE) {
   # The script WILL NOT RUN if plate_data_filename, sample_metadata_filename, and pre_parsed_data_file are all set
   
   force_curve_through_zero <- TRUE # force the standard curve plots to go through (0,0)? (Recommended TRUE)
+  
+  library(rstudioapi) # NOT for users to change. comes in handy for loading functions into this script later
+  repo_path <- dirname(getSourceEditorContext()$path)
+} else {
+  print(sys.frame(1)$ofile)
 }
 
 #####################################################
 ## Load required packages: ##########################
+# Functions from original code
+source("")
+
 required_packages <- c("getopt", "glue", "plyr", "dplyr", "ggplot2", "grid", "reshape2", "xlsx")
 
 # Check if the packages are already installed and exit if not
